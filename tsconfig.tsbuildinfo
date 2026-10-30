@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/FlyerLightboxModal.tsx","./src/components/RecurringRulesModal.tsx","./src/components/SplitScreenReviewer.tsx","./src/data/seedData.ts","./src/lib/flyerExtractor.ts","./src/lib/supabase.ts","./src/types/calendar.ts"],"version":"5.7.3"}

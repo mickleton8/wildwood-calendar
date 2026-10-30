@@ -1,0 +1,18 @@
+{
+  "name": "Wildwood Pulse — Happy Hours & Live Music",
+  "short_name": "WW Pulse",
+  "description": "North Wildwood & Anglesea live guide to happy hours, raw bars, drink specials, and live music.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

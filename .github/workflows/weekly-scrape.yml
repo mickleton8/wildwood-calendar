@@ -1,0 +1,32 @@
+name: Weekly North Wildwood Venue Scraper & Materializer
+
+on:
+  schedule:
+    # Runs every Thursday at 14:00 UTC (10:00 AM EDT) before the weekend rush
+    - cron: '0 14 * * 4'
+  workflow_dispatch:
+
+jobs:
+  scrape-and-materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run North Wildwood Venue Scraper
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: npm run scrape
