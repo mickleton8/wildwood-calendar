@@ -1,0 +1,46 @@
+# Wildwood Pulse — Agent Guidelines & Project Memory
+
+## Project Overview
+**Wildwood Pulse** is a mobile-first Progressive Web App (PWA) built for a local group of Wildwood, NJ friends and family to track Happy Hours, Food/Drink Specials, Raw Bars, and Live Music across the **North Wildwood Entertainment District** (Olde New Jersey Ave, Anglesea, Walnut, Spruce, and Wildwood border staples).
+
+- **Production URL:** `https://wildwood-calendar.vercel.app`
+- **Supabase Project URL:** `https://bbeczagskcxbagxjkvwn.supabase.co`
+- **Tech Stack:** React 19, Vite 6, TypeScript, Tailwind CSS v4, Lucide Icons, Supabase (PostgreSQL + Storage + Realtime), Google Gemini 2.5 Flash Vision (`@google/genai` / REST API), Playwright (`scrapers/north-wildwood-scraper.ts`).
+
+---
+
+## Key Architectural Rules & Conventions
+
+### 1. Hybrid Temporal Database Model (`recurring_rules` + `calendar_occurrences`)
+- **Weekly Templates (`public.recurring_rules`):** Store repeating weekly schedules (`days_of_week smallint[]` where `0=Sun .. 6=Sat`, `start_time`, `end_time`, `end_time_label`, `deals_summary jsonb`, `tags text[]`).
+- **Materialized Occurrences (`public.calendar_occurrences`):** Single source of truth queried by the frontend timeline. Contains both materialized rows linked via `recurring_rule_id` and standalone one-off events (`recurring_rule_id IS NULL`).
+- **Protecting Exceptions:** Whenever a single date is edited via Flyer Diff Upsert or soft-cancelled in the UI, `is_exception = true` (and `is_cancelled = true` if cancelled) MUST be set. Both the PostgreSQL RPC `public.materialize_recurring_rules(p_start_date, p_days_ahead)` and the client-side mirror `materializeRecurringRulesClient()` in `src/data/seedData.ts` skip overwriting any row where `is_exception = true` or `is_cancelled = true`.
+
+### 2. Canonical Venue UUIDs
+Local seed data (`src/data/seedData.ts`) and Supabase PostgreSQL (`supabase/full_setup.sql`) MUST share identical deterministic UUIDs for the 8 core North Wildwood venues so foreign keys never mismatch between local fallback and cloud mode:
+- `11111111-1111-1111-1111-111111111101` — Anglesea Pub
+- `11111111-1111-1111-1111-111111111102` — Owen's Pub
+- `11111111-1111-1111-1111-111111111103` — Keenan's Irish Pub
+- `11111111-1111-1111-1111-111111111104` — Joe Joe's Place
+- `11111111-1111-1111-1111-111111111105` — Flip Flopz Beach Bar & Grill
+- `11111111-1111-1111-1111-111111111106` — MudHen Brewing Company
+- `11111111-1111-1111-1111-111111111107` — Tavern on the Bay
+- `11111111-1111-1111-1111-111111111108` — Old City Pub
+
+When adding new venues, always generate a valid UUID v4 (or deterministic UUID) and insert it into both `supabase/full_setup.sql` and `src/data/seedData.ts`.
+
+### 3. Controlled Filter Tag Vocabulary (`FilterTag`)
+All extracted and seeded events must restrict their `tags` array to the controlled vocabulary defined in `src/types/calendar.ts` and `src/data/seedData.ts`:
+- **Drinks:** `draft_beer`, `cans_bottles`, `crushes`, `margaritas`, `cocktails`, `wine`, `shots`
+- **Food:** `wings`, `tacos`, `oysters_clams`, `burgers_sandwiches`, `pizza`, `half_price_apps`
+- **Music/Vibe:** `live_band`, `acoustic_solo`, `dj`, `irish_music`, `trivia_bingo`, `no_cover`, `outdoor_deck`
+
+### 4. Vision AI Extraction & Edge Cases (`src/lib/flyerExtractor.ts` & `SplitScreenReviewer.tsx`)
+- **Relative Date Anchoring:** Always pass the current `America/New_York` date (`getEasternNow().dateStr`) into Gemini prompts so `"This Friday"` or `"Saturday Oct 31"` resolves to an exact `YYYY-MM-DD` string.
+- **Open-Ended Times (`"4pm-Close"`, `"Starts at 8:30 PM"`):** Store the display label in `end_time_label` (`"Close"`, `"Late"`) while assigning a concrete `end_time` (`"23:59"`) for timeline sorting, and attach an `ambiguity_flags` entry on `end_time` so the Split-Screen Reviewer highlights it in amber.
+- **Fuzzy Diff Matching:** `attachFuzzyDiffMatches()` matches candidate items against existing occurrences by `(venue_id, occurrence_date, category)` (within a 3-hour start window) to badge cards as `✨ NEW` vs `🔄 UPDATE (Diff)`.
+
+### 5. Environment Variables & Deployment Gotchas
+- **Supabase Key Naming:** Supabase's dashboard Connect modal provides `VITE_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`). `src/lib/supabase.ts` checks `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY`. Keep both supported.
+- **Vercel CLI v65+ Env Var Quirk:** When adding `VITE_*` API keys via Vercel CLI v65+, pass `--environment production --type config --force` (using `printf "value" | npx vercel env add KEY --environment production --type config --force`) to avoid interactive credential-exposure blocks.
+- **Deploying Updates:** Run `npm run build` to verify TypeScript (`tsc -b`) and Vite bundle cleanly, then deploy with `npx vercel --prod --yes`.
