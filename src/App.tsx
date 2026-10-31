@@ -105,7 +105,7 @@ function getNext10Days(anchorDateStr: string) {
     'Dec',
   ];
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 22; i++) {
     const dt = new Date(Date.UTC(y, m - 1, d + i, 12, 0, 0));
     const yyyy = dt.getUTCFullYear();
     const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
