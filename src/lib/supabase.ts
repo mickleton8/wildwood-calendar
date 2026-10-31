@@ -10,6 +10,7 @@ import {
   CalendarOccurrence,
   ExtractedCandidateItem,
   RecurringRule,
+  SeasonalStatus,
   Venue,
 } from '../types/calendar';
 
@@ -54,9 +55,9 @@ export function getEasternNow(): { dateStr: string; time24: string } {
 }
 
 const STORAGE_KEYS = {
-  VENUES: 'ww_pulse_venues_v3',
-  RULES: 'ww_pulse_rules_v3',
-  OCCURRENCES: 'ww_pulse_occurrences_v3',
+  VENUES: 'ww_pulse_venues_v4',
+  RULES: 'ww_pulse_rules_v4',
+  OCCURRENCES: 'ww_pulse_occurrences_v4',
   CREW_PIN_UNLOCKED: 'ww_pulse_crew_unlocked_v1',
 };
 
@@ -264,7 +265,18 @@ export async function fetchCloudData(): Promise<{
     is_active: Boolean(r.is_active ?? true),
   }));
 
-  const occurrences: CalendarOccurrence[] = (occRes.data || []).map(normalizeCloudOccurrence);
+  const occurrencesRaw: CalendarOccurrence[] = (occRes.data || []).map(normalizeCloudOccurrence);
+  const occurrences = occurrencesRaw.filter((occ) => {
+    const v = mergedVenuesMap.get(occ.venue_id);
+    if (!v) return true;
+    if (v.seasonal_status === 'closed_for_season') return false;
+    if (Array.isArray(v.open_days_of_week) && v.open_days_of_week.length > 0 && !occ.is_exception) {
+      const [y, m, d] = occ.occurrence_date.split('-').map(Number);
+      const dow = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
+      if (!v.open_days_of_week.includes(dow)) return false;
+    }
+    return true;
+  });
 
   return { venues, rules, occurrences };
 }
@@ -417,4 +429,71 @@ export async function rematerializeInCloud(): Promise<boolean> {
   if (!supabase) return false;
   const { error } = await supabase.rpc('materialize_recurring_rules', { p_days_ahead: 30 });
   return !error;
+}
+
+export async function updateVenueSeasonalStatusInCloud(
+  venueId: string,
+  nextStatus: SeasonalStatus,
+  openDays: number[],
+  seasonalNote: string
+): Promise<boolean> {
+  if (!supabase) return false;
+  try {
+    await supabase
+      .from('venues')
+      .update({
+        is_year_round: nextStatus === 'open',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', venueId);
+
+    if (nextStatus === 'closed_for_season') {
+      // Pause all recurring rules for this venue and remove non-exception materialized occurrences
+      await supabase
+        .from('recurring_rules')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('venue_id', venueId);
+
+      await supabase
+        .from('calendar_occurrences')
+        .delete()
+        .eq('venue_id', venueId)
+        .eq('is_exception', false);
+    } else {
+      // Activate recurring rules for this venue and materialize
+      await supabase
+        .from('recurring_rules')
+        .update({ is_active: true, updated_at: new Date().toISOString() })
+        .eq('venue_id', venueId);
+
+      await supabase.rpc('materialize_recurring_rules', { p_days_ahead: 30 });
+
+      // If weekends_only, prune any materialized occurrences on days the venue is closed
+      if (nextStatus === 'weekends_only' && openDays.length > 0) {
+        const { data: occRows } = await supabase
+          .from('calendar_occurrences')
+          .select('id, occurrence_date, is_exception')
+          .eq('venue_id', venueId)
+          .eq('is_exception', false);
+
+        if (occRows?.length) {
+          const toDeleteIds = occRows
+            .filter((row: any) => {
+              const [y, m, d] = String(row.occurrence_date).split('-').map(Number);
+              const dow = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
+              return !openDays.includes(dow);
+            })
+            .map((row: any) => row.id);
+
+          if (toDeleteIds.length > 0) {
+            await supabase.from('calendar_occurrences').delete().in('id', toDeleteIds);
+          }
+        }
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('Failed to update venue seasonal status in cloud:', err);
+    return false;
+  }
 }

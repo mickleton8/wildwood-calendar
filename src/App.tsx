@@ -48,6 +48,7 @@ import {
   supabase,
   syncApprovedItemsToCloud,
   toggleRuleInCloud,
+  updateVenueSeasonalStatusInCloud,
 } from './lib/supabase';
 import {
   CalendarOccurrence,
@@ -55,6 +56,7 @@ import {
   ExtractedCandidateItem,
   FilterTag,
   RecurringRule,
+  SeasonalStatus,
   Venue,
 } from './types/calendar';
 
@@ -162,6 +164,7 @@ export function App() {
   const [showPinPrompt, setShowPinPrompt] = useState<boolean>(false);
   const [showPwaGuide, setShowPwaGuide] = useState<boolean>(false);
   const [showVenuesDirectory, setShowVenuesDirectory] = useState<boolean>(false);
+  const [directoryStatusFilter, setDirectoryStatusFilter] = useState<'all' | SeasonalStatus>('all');
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   const [isReviewerOpen, setIsReviewerOpen] = useState<boolean>(false);
@@ -296,6 +299,17 @@ export function App() {
         if (occ.is_cancelled) return false;
         if (occ.occurrence_date !== selectedDate) return false;
         const venue = venueMap.get(occ.venue_id);
+        if (venue?.seasonal_status === 'closed_for_season') return false;
+        if (
+          venue &&
+          Array.isArray(venue.open_days_of_week) &&
+          venue.open_days_of_week.length > 0 &&
+          !occ.is_exception
+        ) {
+          const [y, m, d] = occ.occurrence_date.split('-').map(Number);
+          const dow = new Date(Date.UTC(y, m - 1, d, 12, 0, 0)).getUTCDay();
+          if (!venue.open_days_of_week.includes(dow)) return false;
+        }
         if (selectedArea !== 'all' && venue?.neighborhood !== selectedArea) {
           return false;
         }
@@ -526,6 +540,71 @@ export function App() {
       await cancelOccurrenceInCloud(occId);
     }
     showToast(`Cancelled "${title}" for ${selectedDate} (protected from re-materialization).`);
+  };
+
+  const handleUpdateVenueSeasonalStatus = async (
+    venue: Venue,
+    nextStatus: SeasonalStatus
+  ) => {
+    const nextOpenDays =
+      nextStatus === 'open'
+        ? [0, 1, 2, 3, 4, 5, 6]
+        : nextStatus === 'weekends_only'
+        ? [4, 5, 6, 0]
+        : [];
+    const nextNote =
+      nextStatus === 'open'
+        ? 'Open Year-Round / Daily'
+        : nextStatus === 'weekends_only'
+        ? 'Off-Season Weekends (Thu–Sun)'
+        : 'Closed for the Season — Reopens Spring';
+
+    const nextVenues = venues.map((v) =>
+      v.id === venue.id
+        ? {
+            ...v,
+            is_year_round: nextStatus === 'open',
+            seasonal_status: nextStatus,
+            open_days_of_week: nextOpenDays,
+            seasonal_note: nextNote,
+          }
+        : v
+    );
+    const nextRules = rules.map((r) =>
+      r.venue_id === venue.id
+        ? { ...r, is_active: nextStatus !== 'closed_for_season' }
+        : r
+    );
+    setVenues(nextVenues);
+    setRules(nextRules);
+    setOccurrences(
+      materializeRecurringRulesClient(
+        nextRules,
+        occurrences,
+        activeAnchorDate,
+        21,
+        nextVenues
+      )
+    );
+
+    if (isSupabaseConfigured) {
+      await updateVenueSeasonalStatusInCloud(
+        venue.id,
+        nextStatus,
+        nextOpenDays,
+        nextNote
+      );
+    }
+
+    showToast(
+      `Updated ${venue.name} → ${
+        nextStatus === 'open'
+          ? '🟢 Open 7 Days'
+          : nextStatus === 'weekends_only'
+          ? '🟡 Off-Season Weekends (Thu–Sun)'
+          : '❄️ Closed for Season (rules paused)'
+      }`
+    );
   };
 
   return (
@@ -1134,7 +1213,7 @@ export function App() {
       {showVenuesDirectory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-3 sm:p-6">
           <div className="flex flex-col w-full max-w-5xl max-h-[88vh] rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950 px-5 py-4">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400">
                   <Building2 className="h-5 w-5" />
@@ -1144,21 +1223,68 @@ export function App() {
                     Verified Corridor Roster ({venues.length} Bars, Restaurants &amp; Breweries)
                   </h2>
                   <p className="text-xs text-slate-400">
-                    North Wildwood • Wildwood • Wildwood Crest • Cape May • North Cape May &amp; Off-Island
+                    3-Tier Off-Season Status: Closed venues are automatically paused from the live timeline
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowVenuesDirectory(false)}
-                className="rounded-xl border border-slate-800 p-1.5 text-slate-400 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+
+              <div className="flex flex-wrap items-center gap-1.5">
+                {(
+                  [
+                    { id: 'all', label: `All (${venues.length})` },
+                    {
+                      id: 'open',
+                      label: `🟢 Open (${
+                        venues.filter((v) => (v.seasonal_status || (v.is_year_round ? 'open' : 'closed_for_season')) === 'open').length
+                      })`,
+                    },
+                    {
+                      id: 'weekends_only',
+                      label: `🟡 Weekends/Limited (${
+                        venues.filter((v) => v.seasonal_status === 'weekends_only').length
+                      })`,
+                    },
+                    {
+                      id: 'closed_for_season',
+                      label: `❄️ Closed for Season (${
+                        venues.filter((v) => (v.seasonal_status || (v.is_year_round ? 'open' : 'closed_for_season')) === 'closed_for_season').length
+                      })`,
+                    },
+                  ] as const
+                ).map((pill) => (
+                  <button
+                    key={pill.id}
+                    onClick={() => setDirectoryStatusFilter(pill.id)}
+                    className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                      directoryStatusFilter === pill.id
+                        ? 'bg-amber-500 text-slate-950'
+                        : 'bg-slate-900 border border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setShowVenuesDirectory(false)}
+                  className="ml-1 rounded-xl border border-slate-800 p-1.5 text-slate-400 hover:text-white"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
               {CORRIDOR_AREAS.filter((a) => a.id !== 'all').map((area) => {
-                const areaVenues = venues.filter((v) => v.neighborhood === area.id);
+                const areaVenues = venues.filter((v) => {
+                  if (v.neighborhood !== area.id) return false;
+                  const effStatus: SeasonalStatus =
+                    v.seasonal_status || (v.is_year_round ? 'open' : 'closed_for_season');
+                  if (directoryStatusFilter !== 'all' && effStatus !== directoryStatusFilter) {
+                    return false;
+                  }
+                  return true;
+                });
+                if (areaVenues.length === 0) return null;
                 return (
                   <div key={area.id} className="space-y-2.5">
                     <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
@@ -1172,69 +1298,117 @@ export function App() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                      {areaVenues.map((v) => (
-                        <div
-                          key={v.id}
-                          className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/80 p-3 hover:border-slate-700 transition"
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-2">
-                              <h4 className="text-xs sm:text-sm font-bold text-white">
-                                {v.name}
-                              </h4>
-                              <span
-                                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
-                                  v.is_year_round
-                                    ? 'bg-emerald-500/15 text-emerald-300'
-                                    : 'bg-amber-500/15 text-amber-300'
-                                }`}
+                      {areaVenues.map((v) => {
+                        const effStatus: SeasonalStatus =
+                          v.seasonal_status || (v.is_year_round ? 'open' : 'closed_for_season');
+                        return (
+                          <div
+                            key={v.id}
+                            className={`flex flex-col justify-between rounded-xl border p-3 transition ${
+                              effStatus === 'closed_for_season'
+                                ? 'border-slate-800/60 bg-slate-950/40 opacity-75'
+                                : 'border-slate-800 bg-slate-950/80 hover:border-slate-700'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-start justify-between gap-2">
+                                <h4 className="text-xs sm:text-sm font-bold text-white">
+                                  {v.name}
+                                </h4>
+                                <span
+                                  className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                    effStatus === 'open'
+                                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                      : effStatus === 'weekends_only'
+                                      ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                      : 'bg-rose-500/15 text-rose-300 border border-rose-500/30'
+                                  }`}
+                                >
+                                  {effStatus === 'open'
+                                    ? '🟢 Open'
+                                    : effStatus === 'weekends_only'
+                                    ? '🟡 Weekends/Limited'
+                                    : '❄️ Closed for Season'}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-[11px] text-slate-400 flex items-center gap-1">
+                                <MapPin className="h-3 w-3 text-slate-500 shrink-0" />
+                                <span className="truncate">{v.address}</span>
+                              </p>
+                              {v.seasonal_note && (
+                                <p className="mt-1 text-[10px] font-medium text-slate-300 bg-slate-900/80 rounded px-2 py-0.5 border border-slate-800/80">
+                                  {v.seasonal_note}
+                                </p>
+                              )}
+                            </div>
+
+                            {crewUnlocked && (
+                              <div className="mt-2 pt-2 border-t border-slate-900 flex items-center justify-between gap-1">
+                                <span className="text-[10px] font-semibold text-slate-400">
+                                  Crew Status:
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  {(
+                                    [
+                                      { id: 'open', label: '🟢 Open' },
+                                      { id: 'weekends_only', label: '🟡 Wknds' },
+                                      { id: 'closed_for_season', label: '❄️ Closed' },
+                                    ] as const
+                                  ).map((st) => (
+                                    <button
+                                      key={st.id}
+                                      onClick={() => handleUpdateVenueSeasonalStatus(v, st.id)}
+                                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold transition ${
+                                        effStatus === st.id
+                                          ? 'bg-amber-500 text-slate-950'
+                                          : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'
+                                      }`}
+                                    >
+                                      {st.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center justify-between gap-2 text-[11px]">
+                              <div className="flex items-center gap-2 text-slate-400">
+                                {v.phone && (
+                                  <a
+                                    href={`tel:${v.phone}`}
+                                    className="inline-flex items-center gap-1 hover:text-amber-300"
+                                  >
+                                    <Phone className="h-3 w-3" />
+                                    <span>{v.phone}</span>
+                                  </a>
+                                )}
+                                {v.website_url && (
+                                  <a
+                                    href={v.website_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-0.5 text-sky-400 hover:underline"
+                                  >
+                                    <span>Site</span>
+                                    <ExternalLink className="h-2.5 w-2.5" />
+                                  </a>
+                                )}
+                              </div>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedArea(v.neighborhood as CorridorArea);
+                                  setSelectedVenueId(v.id);
+                                  setShowVenuesDirectory(false);
+                                }}
+                                className="rounded-lg bg-slate-800 hover:bg-slate-700 px-2 py-1 text-[10px] font-bold text-slate-200"
                               >
-                                {v.is_year_round ? 'Year-Round' : 'Seasonal'}
-                              </span>
+                                Filter Timeline
+                              </button>
                             </div>
-                            <p className="mt-1 text-[11px] text-slate-400 flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-slate-500 shrink-0" />
-                              <span className="truncate">{v.address}</span>
-                            </p>
                           </div>
-
-                          <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center justify-between gap-2 text-[11px]">
-                            <div className="flex items-center gap-2 text-slate-400">
-                              {v.phone && (
-                                <a
-                                  href={`tel:${v.phone}`}
-                                  className="inline-flex items-center gap-1 hover:text-amber-300"
-                                >
-                                  <Phone className="h-3 w-3" />
-                                  <span>{v.phone}</span>
-                                </a>
-                              )}
-                              {v.website_url && (
-                                <a
-                                  href={v.website_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-0.5 text-sky-400 hover:underline"
-                                >
-                                  <span>Site</span>
-                                  <ExternalLink className="h-2.5 w-2.5" />
-                                </a>
-                              )}
-                            </div>
-
-                            <button
-                              onClick={() => {
-                                setSelectedArea(v.neighborhood as CorridorArea);
-                                setSelectedVenueId(v.id);
-                                setShowVenuesDirectory(false);
-                              }}
-                              className="rounded-lg bg-slate-800 hover:bg-slate-700 px-2 py-1 text-[10px] font-bold text-slate-200"
-                            >
-                              Filter Timeline
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );

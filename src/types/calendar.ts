@@ -29,6 +29,8 @@ export interface TagMetadata {
   group: 'drink' | 'food' | 'music';
 }
 
+export type SeasonalStatus = 'open' | 'weekends_only' | 'closed_for_season';
+
 export interface Venue {
   id: string;
   slug: string;
@@ -44,6 +46,9 @@ export interface Venue {
   phone?: string;
   is_year_round: boolean;
   is_active: boolean;
+  seasonal_status?: SeasonalStatus;
+  open_days_of_week?: number[]; // 0=Sun .. 6=Sat (empty [] if closed_for_season)
+  seasonal_note?: string;
 }
 
 export interface RecurringRule {
