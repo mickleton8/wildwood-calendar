@@ -54,9 +54,9 @@ export function getEasternNow(): { dateStr: string; time24: string } {
 }
 
 const STORAGE_KEYS = {
-  VENUES: 'ww_pulse_venues_v1',
-  RULES: 'ww_pulse_rules_v1',
-  OCCURRENCES: 'ww_pulse_occurrences_v1',
+  VENUES: 'ww_pulse_venues_v2',
+  RULES: 'ww_pulse_rules_v2',
+  OCCURRENCES: 'ww_pulse_occurrences_v2',
   CREW_PIN_UNLOCKED: 'ww_pulse_crew_unlocked_v1',
 };
 
@@ -214,22 +214,38 @@ export async function fetchCloudData(): Promise<{
     return null;
   }
 
-  const venues: Venue[] = venuesRes.data.map((v: any) => ({
-    id: v.id,
-    slug: v.slug,
-    name: v.name,
-    neighborhood: v.neighborhood || 'North Wildwood',
-    address: v.address || '',
-    cross_street: v.cross_street || v.neighborhood || 'North Wildwood',
-    lat: Number(v.lat ?? 39.006),
-    lng: Number(v.lng ?? -74.794),
-    website_url: v.website_url,
-    facebook_url: v.facebook_url,
-    instagram_handle: v.instagram_handle,
-    phone: v.phone,
-    is_year_round: Boolean(v.is_year_round ?? true),
-    is_active: Boolean(v.is_active ?? true),
-  }));
+  const verifiedMap = new Map(SEED_VENUES.map((v) => [v.id, v]));
+  const mergedVenuesMap = new Map<string, Venue>();
+
+  // Always include all 57 verified corridor venues with verified addresses & neighborhoods
+  for (const v of SEED_VENUES) {
+    mergedVenuesMap.set(v.id, v);
+  }
+
+  // Include any additional cloud-added venues not in the canonical 57 list (excluding Tavern on the Bay)
+  for (const v of venuesRes.data) {
+    if (v.slug === 'tavern-on-the-bay') continue;
+    if (!verifiedMap.has(v.id)) {
+      mergedVenuesMap.set(v.id, {
+        id: v.id,
+        slug: v.slug,
+        name: v.name,
+        neighborhood: v.neighborhood || 'North Wildwood',
+        address: v.address || '',
+        cross_street: v.cross_street || v.neighborhood || 'North Wildwood',
+        lat: Number(v.lat ?? 39.006),
+        lng: Number(v.lng ?? -74.794),
+        website_url: v.website_url,
+        facebook_url: v.facebook_url,
+        instagram_handle: v.instagram_handle,
+        phone: v.phone,
+        is_year_round: Boolean(v.is_year_round ?? true),
+        is_active: Boolean(v.is_active ?? true),
+      });
+    }
+  }
+
+  const venues: Venue[] = Array.from(mergedVenuesMap.values());
 
   const rules: RecurringRule[] = (rulesRes.data || []).map((r: any) => ({
     id: r.id,

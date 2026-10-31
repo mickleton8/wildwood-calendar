@@ -16,18 +16,15 @@
 - **Materialized Occurrences (`public.calendar_occurrences`):** Single source of truth queried by the frontend timeline. Contains both materialized rows linked via `recurring_rule_id` and standalone one-off events (`recurring_rule_id IS NULL`).
 - **Protecting Exceptions:** Whenever a single date is edited via Flyer Diff Upsert or soft-cancelled in the UI, `is_exception = true` (and `is_cancelled = true` if cancelled) MUST be set. Both the PostgreSQL RPC `public.materialize_recurring_rules(p_start_date, p_days_ahead)` and the client-side mirror `materializeRecurringRulesClient()` in `src/data/seedData.ts` skip overwriting any row where `is_exception = true` or `is_cancelled = true`.
 
-### 2. Canonical Venue UUIDs
-Local seed data (`src/data/seedData.ts`) and Supabase PostgreSQL (`supabase/full_setup.sql`) MUST share identical deterministic UUIDs for the 8 core North Wildwood venues so foreign keys never mismatch between local fallback and cloud mode:
-- `11111111-1111-1111-1111-111111111101` — Anglesea Pub
-- `11111111-1111-1111-1111-111111111102` — Owen's Pub
-- `11111111-1111-1111-1111-111111111103` — Keenan's Irish Pub
-- `11111111-1111-1111-1111-111111111104` — Joe Joe's Place
-- `11111111-1111-1111-1111-111111111105` — Flip Flopz Beach Bar & Grill
-- `11111111-1111-1111-1111-111111111106` — MudHen Brewing Company
-- `11111111-1111-1111-1111-111111111107` — Tavern on the Bay
-- `11111111-1111-1111-1111-111111111108` — Old City Pub
+### 2. Canonical 57-Venue Corridor Roster (`src/data/venuesRoster.ts` & `supabase/sync_57_venues.sql`)
+Local seed data (`src/data/venuesRoster.ts` / `src/data/seedData.ts`) and Supabase PostgreSQL (`supabase/sync_57_venues.sql`) share deterministic UUIDs (`11111111-1111-1111-1111-111111111101` through `11111111-1111-1111-1111-111111111157`) across all **57 verified venues** in 5 corridor areas:
+- **North Wildwood (13):** Anglesea Pub (`..101`), Owen's Pub (`..102`), Keenan's Irish Pub (`..103`), Joe Joe's Place Tacos & Tequila (`..104`), Flip Flopz (`..105`), The Surfing Pig (`..107`), The Inlet North Wildwood (`..109`), Exit6ix (`..110`), Curran's Irish Inn (`..111`), North End American Grill (`..112`), The Salty Mermaid (`..113`), Seaport Pier (`..114`), Lazy Bass Bayside (`..115`).
+- **Wildwood (28):** MudHen Brewing Co. (`..106`), Old City Pub (`..108`), Firehouse Tavern (`..116`), Blue Water Grille in the Bolero Resort (`..117`), Jersey Girl Kitchen | Bar (`..118`), Schellenger's Restaurant (`..119`), Timmy's Ale House (`..120`), La Cantina (`..121`), Sandy Boots Saloon (`..122`), Fairview Social (`..123`), The Point - Wildwood (`..124`), Cattle 'n Clover (`..125`), Wildwood's Honky Tonk Saloon (`..126`), Ship 'N Shore Bar (`..127`), The Wharf (`..128`), Lost Buoy Bar (`..129`), Urie's Waterfront (`..130`), Santorini (`..131`), Boathouse Restaurant (`..132`), Beach Creek Oyster Bar (`..133`), Mulligan's Shore Bar (`..134`), Anglesea Aleworks (`..135`), Alfe's Restaurant (`..136`), Dogtooth Bar & Grill (`..137`), Copper Dog Wildwood (`..138`), Poppi's Brick Oven (`..139`), Duffinetti's (`..140`), Corkyard (`..141`), The Ravioli House (`..142`), Venezia (`..143`).
+- **Wildwood Crest & Two Mile (4):** Little Italy (`..144`), George's Place (`..145`), Crest Tavern (`..146`), Two Mile Crab House & Crush Bar (`..147`).
+- **Cape May & Harbor (5):** Mooncussers (`..148`), Port Marina and Restaurant (`..149`), Mad Viking Dock Bar (`..150`), Lucky Bones Backwater Grille (`..151`), Mayer's Tavern (`..152`).
+- **North Cape May & Off-Island (5):** Behr Brewing (`..153`), Red Brick Ale House (`..154`), Gusto Brewing Co. (`..155`), Nauti Spirits Distillery (`..156`), Whale Tale Brewing Co. (`..157`).
 
-When adding new venues, always generate a valid UUID v4 (or deterministic UUID) and insert it into both `supabase/full_setup.sql` and `src/data/seedData.ts`.
+*(Note: Never re-add "Tavern on the Bay" — that venue is in Somers Point, NJ, not Wildwood.)*
 
 ### 3. Controlled Filter Tag Vocabulary (`FilterTag`)
 All extracted and seeded events must restrict their `tags` array to the controlled vocabulary defined in `src/types/calendar.ts` and `src/data/seedData.ts`:

@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Beer,
+  Building2,
   Calendar as CalendarIcon,
-  Clock,
   Cloud,
   Database,
+  ExternalLink,
   Eye,
   FileImage,
   Flame,
@@ -12,6 +13,7 @@ import {
   Lock,
   MapPin,
   Music,
+  Phone,
   PlusCircle,
   Radio,
   Repeat,
@@ -31,6 +33,7 @@ import {
   materializeRecurringRulesClient,
   TAG_METADATA,
 } from './data/seedData';
+import { CORRIDOR_AREAS, CorridorArea } from './data/venuesRoster';
 import {
   cancelOccurrenceInCloud,
   fetchCloudData,
@@ -111,7 +114,12 @@ function getNext10Days(anchorDateStr: string) {
     const dow = dt.getUTCDay();
     days.push({
       dateStr,
-      dayShort: i === 0 ? `Today (${dayNames[dow]})` : i === 1 ? `Tomorrow (${dayNames[dow]})` : dayNames[dow],
+      dayShort:
+        i === 0
+          ? `Today (${dayNames[dow]})`
+          : i === 1
+          ? `Tomorrow (${dayNames[dow]})`
+          : dayNames[dow],
       monthDay: `${monthNames[dt.getUTCMonth()]} ${dt.getUTCDate()}`,
       isToday: i === 0,
       specialLabel: dateStr === '2026-10-31' ? '🎃 Halloween' : undefined,
@@ -134,6 +142,7 @@ export function App() {
 
   // Navigation & Filters
   const [selectedDate, setSelectedDate] = useState<string>(activeAnchorDate);
+  const [selectedArea, setSelectedArea] = useState<'all' | CorridorArea>('all');
   const [timeMode, setTimeMode] = useState<TimeFilterMode>('all_day');
   const [clockSource, setClockSource] = useState<ClockSourceMode>('live_eastern');
   const [liveEasternTime, setLiveEasternTime] = useState<string>(
@@ -152,6 +161,7 @@ export function App() {
   );
   const [showPinPrompt, setShowPinPrompt] = useState<boolean>(false);
   const [showPwaGuide, setShowPwaGuide] = useState<boolean>(false);
+  const [showVenuesDirectory, setShowVenuesDirectory] = useState<boolean>(false);
   const [pinInput, setPinInput] = useState<string>('');
   const [pinError, setPinError] = useState<string>('');
   const [isReviewerOpen, setIsReviewerOpen] = useState<boolean>(false);
@@ -231,6 +241,11 @@ export function App() {
   );
   const venueMap = useMemo(() => new Map(venues.map((v) => [v.id, v])), [venues]);
 
+  const venuesInSelectedArea = useMemo(() => {
+    if (selectedArea === 'all') return venues;
+    return venues.filter((v) => v.neighborhood === selectedArea);
+  }, [venues, selectedArea]);
+
   const activeClockTime =
     clockSource === 'live_eastern' ? liveEasternTime : simulatedClock;
   const nowMinutes = useMemo(
@@ -280,6 +295,10 @@ export function App() {
       .filter((occ) => {
         if (occ.is_cancelled) return false;
         if (occ.occurrence_date !== selectedDate) return false;
+        const venue = venueMap.get(occ.venue_id);
+        if (selectedArea !== 'all' && venue?.neighborhood !== selectedArea) {
+          return false;
+        }
         if (selectedVenueId !== 'all' && occ.venue_id !== selectedVenueId) {
           return false;
         }
@@ -306,11 +325,11 @@ export function App() {
         }
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
-          const venue = venueMap.get(occ.venue_id);
           const haystack = [
             occ.title,
             occ.performer_name || '',
             venue?.name || '',
+            venue?.neighborhood || '',
             ...occ.deals_summary,
             ...occ.tags,
           ]
@@ -331,6 +350,7 @@ export function App() {
   }, [
     occurrences,
     selectedDate,
+    selectedArea,
     selectedVenueId,
     selectedCategory,
     selectedTags,
@@ -533,16 +553,16 @@ export function App() {
                     Wildwood Pulse
                   </h1>
                   <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-300">
-                    North Wildwood
+                    {venues.length} Corridor Spots
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Olde New Jersey Ave &amp; Anglesea Happy Hours, Raw Bars &amp; Live Music
+                  North Wildwood, Wildwood, Crest &amp; Cape May Happy Hours &amp; Live Music
                 </p>
               </div>
             </div>
 
-            {/* Right Controls: Drop Flyer + Rules + Install PWA + Crew Unlock */}
+            {/* Right Controls: Drop Flyer + Directory + Rules + Install PWA + Crew Unlock */}
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => {
@@ -556,6 +576,15 @@ export function App() {
               >
                 <PlusCircle className="h-4 w-4" />
                 <span>Drop Flyer / AI Review</span>
+              </button>
+
+              <button
+                onClick={() => setShowVenuesDirectory(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 transition cursor-pointer"
+                title="Browse all 57 verified Corridor Bars, Restaurants & Breweries"
+              >
+                <Building2 className="h-3.5 w-3.5 text-amber-400" />
+                <span>All {venues.length} Spots</span>
               </button>
 
               <button
@@ -612,10 +641,10 @@ export function App() {
                   setVenues(reset.venues);
                   setRules(reset.rules);
                   setOccurrences(reset.occurrences);
-                  showToast('Reset to original North Wildwood seed schedule.');
+                  showToast('Reset to verified 57-venue corridor roster.');
                 }}
                 className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                title="Reset Demo Data to Initial Seed"
+                title="Reset Local Cache"
               >
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>
@@ -668,6 +697,37 @@ export function App() {
 
       {/* Main Content Container */}
       <main className="mx-auto max-w-6xl px-3 sm:px-6 pt-4 space-y-4">
+        {/* Corridor Town / Area Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+          {CORRIDOR_AREAS.map((area) => {
+            const active = selectedArea === area.id;
+            const count =
+              area.id === 'all'
+                ? venues.length
+                : venues.filter((v) => v.neighborhood === area.id).length;
+            return (
+              <button
+                key={area.id}
+                onClick={() => {
+                  setSelectedArea(area.id);
+                  setSelectedVenueId('all');
+                }}
+                className={`inline-flex items-center gap-1.5 shrink-0 rounded-xl px-3 py-1.5 text-xs font-bold transition cursor-pointer ${
+                  active
+                    ? 'bg-sky-500/20 border border-sky-400 text-sky-200 shadow-sm'
+                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                }`}
+              >
+                <span>{area.emoji}</span>
+                <span>{area.label}</span>
+                <span className="rounded-full bg-slate-950/80 px-1.5 py-0.2 font-mono text-[10px] text-slate-400">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Live Now Bar + Real-Time Eastern Clock & Preview Presets */}
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-3 sm:px-4">
           <div className="flex flex-wrap items-center gap-2">
@@ -768,13 +828,15 @@ export function App() {
             <select
               value={selectedVenueId}
               onChange={(e) => setSelectedVenueId(e.target.value)}
-              className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 focus:border-amber-500 focus:outline-none"
+              className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-200 focus:border-amber-500 focus:outline-none max-w-xs"
               aria-label="Filter by Venue"
             >
-              <option value="all">📍 All North Wildwood Venues ({venues.length})</option>
-              {venues.map((v) => (
+              <option value="all">
+                📍 {selectedArea === 'all' ? 'All Corridor Venues' : selectedArea} ({venuesInSelectedArea.length})
+              </option>
+              {venuesInSelectedArea.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.name} — {v.cross_street}
+                  {v.name} ({v.neighborhood})
                 </option>
               ))}
             </select>
@@ -828,15 +890,16 @@ export function App() {
         {filteredOccurrences.length === 0 ? (
           <div className="rounded-2xl border border-slate-800/80 bg-slate-900/50 p-10 text-center space-y-3">
             <p className="text-base font-bold text-white">
-              No matching events for this filter window ({format12Hour(activeClockTime)})
+              No scheduled events posted yet for this filter window
             </p>
             <p className="text-xs text-slate-400 max-w-md mx-auto">
-              Try switching from &ldquo;Happening Now&rdquo; to &ldquo;Full Day Schedule&rdquo;, testing the 4:30 PM or 9:00 PM Preview buttons, or dropping a new flyer screenshot.
+              You can browse all <strong>{venues.length} verified corridor venues</strong>, drop a flyer screenshot via AI Review, or reset active filters below.
             </p>
-            <div className="flex justify-center gap-2 pt-2">
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
               <button
                 onClick={() => {
                   setTimeMode('all_day');
+                  setSelectedArea('all');
                   setSelectedCategory('all');
                   setSelectedTags([]);
                   setSelectedVenueId('all');
@@ -844,7 +907,13 @@ export function App() {
                 }}
                 className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950"
               >
-                Show Full Day Lineup
+                Show All Areas &amp; Full Day Lineup
+              </button>
+              <button
+                onClick={() => setShowVenuesDirectory(true)}
+                className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200"
+              >
+                Browse All {venues.length} Venues
               </button>
             </div>
           </div>
@@ -869,9 +938,12 @@ export function App() {
                   <div>
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-black uppercase tracking-wide text-amber-400">
                             {venue?.name}
+                          </span>
+                          <span className="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-semibold text-slate-300">
+                            {venue?.neighborhood}
                           </span>
                           <span className="text-[11px] text-slate-400 flex items-center gap-0.5">
                             <MapPin className="h-3 w-3 text-slate-500" />
@@ -1037,8 +1109,8 @@ export function App() {
           <div className="flex items-center gap-2">
             <FileImage className="h-4 w-4 text-amber-400" />
             <span>
-              <strong>North Wildwood Entertainment District:</strong>{' '}
-              {venues.length} venues • {rules.length} recurring rules •{' '}
+              <strong>Wildwood to Cape May Corridor Roster:</strong>{' '}
+              {venues.length} verified venues • {rules.length} recurring rules •{' '}
               {occurrences.filter((o) => !o.is_cancelled).length} materialized occurrences
             </span>
           </div>
@@ -1051,12 +1123,126 @@ export function App() {
             ) : (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-[11px] font-medium text-slate-300">
                 <Database className="h-3.5 w-3.5 text-amber-400" />
-                Local Persisted Mode (Ready for Supabase `.env`)
+                Local Persisted Mode
               </span>
             )}
           </div>
         </footer>
       </main>
+
+      {/* 57-Venue Corridor Directory Modal */}
+      {showVenuesDirectory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-3 sm:p-6">
+          <div className="flex flex-col w-full max-w-5xl max-h-[88vh] rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-800 bg-slate-950 px-5 py-4">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-white">
+                    Verified Corridor Roster ({venues.length} Bars, Restaurants &amp; Breweries)
+                  </h2>
+                  <p className="text-xs text-slate-400">
+                    North Wildwood • Wildwood • Wildwood Crest • Cape May • North Cape May &amp; Off-Island
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVenuesDirectory(false)}
+                className="rounded-xl border border-slate-800 p-1.5 text-slate-400 hover:text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6">
+              {CORRIDOR_AREAS.filter((a) => a.id !== 'all').map((area) => {
+                const areaVenues = venues.filter((v) => v.neighborhood === area.id);
+                return (
+                  <div key={area.id} className="space-y-2.5">
+                    <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                      <h3 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                        <span>{area.emoji}</span>
+                        <span>{area.label}</span>
+                        <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[11px] text-slate-300">
+                          {areaVenues.length} spots
+                        </span>
+                      </h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {areaVenues.map((v) => (
+                        <div
+                          key={v.id}
+                          className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-950/80 p-3 hover:border-slate-700 transition"
+                        >
+                          <div>
+                            <div className="flex items-start justify-between gap-2">
+                              <h4 className="text-xs sm:text-sm font-bold text-white">
+                                {v.name}
+                              </h4>
+                              <span
+                                className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${
+                                  v.is_year_round
+                                    ? 'bg-emerald-500/15 text-emerald-300'
+                                    : 'bg-amber-500/15 text-amber-300'
+                                }`}
+                              >
+                                {v.is_year_round ? 'Year-Round' : 'Seasonal'}
+                              </span>
+                            </div>
+                            <p className="mt-1 text-[11px] text-slate-400 flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-slate-500 shrink-0" />
+                              <span className="truncate">{v.address}</span>
+                            </p>
+                          </div>
+
+                          <div className="mt-2.5 pt-2 border-t border-slate-900 flex items-center justify-between gap-2 text-[11px]">
+                            <div className="flex items-center gap-2 text-slate-400">
+                              {v.phone && (
+                                <a
+                                  href={`tel:${v.phone}`}
+                                  className="inline-flex items-center gap-1 hover:text-amber-300"
+                                >
+                                  <Phone className="h-3 w-3" />
+                                  <span>{v.phone}</span>
+                                </a>
+                              )}
+                              {v.website_url && (
+                                <a
+                                  href={v.website_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-0.5 text-sky-400 hover:underline"
+                                >
+                                  <span>Site</span>
+                                  <ExternalLink className="h-2.5 w-2.5" />
+                                </a>
+                              )}
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                setSelectedArea(v.neighborhood as CorridorArea);
+                                setSelectedVenueId(v.id);
+                                setShowVenuesDirectory(false);
+                              }}
+                              className="rounded-lg bg-slate-800 hover:bg-slate-700 px-2 py-1 text-[10px] font-bold text-slate-200"
+                            >
+                              Filter Timeline
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PWA Install Guide Modal for Friends & Family */}
       {showPwaGuide && (
@@ -1072,7 +1258,7 @@ export function App() {
                     Install Wildwood Pulse on Your Phone
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Pin to your home screen for 1-tap access on Olde NJ Ave
+                    Pin to your home screen for 1-tap access across the corridor
                   </p>
                 </div>
               </div>
