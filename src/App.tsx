@@ -1048,6 +1048,18 @@ export function App() {
                             <MapPin className="h-3 w-3 text-slate-500" />
                             {venue?.cross_street}
                           </span>
+                          {venue?.website_url && (
+                            <a
+                              href={venue.website_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 rounded bg-slate-800/80 hover:bg-slate-700 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400 hover:text-sky-300 border border-slate-700 transition"
+                              title={`Visit ${venue.name} official website`}
+                            >
+                              <span>Website</span>
+                              <ExternalLink className="h-2.5 w-2.5" />
+                            </a>
+                          )}
                         </div>
                       </div>
 
@@ -1137,14 +1149,14 @@ export function App() {
                     </div>
 
                     {occ.deals_summary.length > 0 && (
-                      <ul className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      <ul className="mt-3 flex flex-col gap-1.5">
                         {occ.deals_summary.map((deal, idx) => (
                           <li
                             key={idx}
-                            className="flex items-center gap-1.5 rounded-lg bg-slate-950/75 border border-slate-800/90 px-2.5 py-1.5 text-xs font-medium text-slate-200"
+                            className="flex items-start gap-2 rounded-lg bg-slate-950/75 border border-slate-800/90 px-3 py-2 text-xs font-medium text-slate-200 leading-relaxed"
                           >
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
-                            <span className="truncate">{deal}</span>
+                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                            <span className="flex-1 break-words">{deal}</span>
                           </li>
                         ))}
                       </ul>
