@@ -19,11 +19,11 @@ A mobile-first Progressive Web App (PWA) for tracking **Happy Hours, Raw Bars, D
    - **Gemini 2.5 Flash Vision** extracts structured events, resolves relative dates (`"This Friday"`), infers open-ended closing times (`"8:30pm-Close"`), and flags ambiguous fields in **amber** for 1-click verification.
    - **Fuzzy Diff Engine** matches extracted items by `(venue_id, occurrence_date, category)` to cleanly upsert band changes (`🔄 UPDATE (Diff)`) instead of creating duplicates.
 
-3. **Hybrid Temporal Database (`Supabase PostgreSQL`)**
-   - `venues`: Canonical **57-venue corridor roster** across 5 geographic zones (`src/data/venuesRoster.ts` & `supabase/sync_57_venues.sql`).
-   - `recurring_rules`: **24 web-verified weekly schedules** across active year-round & shoulder-season venues (*Anglesea Pub*, *Owen's Pub*, *MudHen Brewing Co.*, *Dogtooth Bar & Grill*, *North End American Grill*, *Curran's Irish Inn*, *The Inlet*, *The Surfing Pig*, *Cattle 'n Clover*, *Fairview Social*, *Lucky Bones*, *Port Marina*, *Mad Viking*, *Nauti Spirits*).
-   - `calendar_occurrences`: Materialized 30-day event rows (`299` active occurrences including verified November live music dates from `mudhenbrew.com/events`) generated via the `materialize_recurring_rules` Postgres RPC function, preserving single-date exceptions (`is_exception = true`).
-   - Real-time Postgres subscriptions update all connected phones immediately when a flyer is published.
+3. **Hybrid Temporal Database & 3-Tier Seasonal Engine (`Supabase PostgreSQL`)**
+   - `venues`: Canonical **57-venue corridor roster** across 5 geographic zones audited with 3-tier seasonal status (`22 Open Year-Round`, `8 Weekends/Limited`, `27 Closed for the Season`).
+   - `recurring_rules`: **40 web-verified schedules** (36 active Fall/Winter weekly schedules + 4 paused summer templates preserved for Spring reopening).
+   - `calendar_occurrences`: Materialized 30-day event rows (**328 active verified occurrences**, zero ghost occurrences for seasonally closed spots like Mad Viking, North End, or Curran's) generated via the `materialize_recurring_rules` Postgres RPC function, preserving single-date exceptions (`is_exception = true`).
+   - Real-time Postgres subscriptions update all connected phones immediately when a flyer is published or seasonal status changes.
 
 ---
 
@@ -48,5 +48,5 @@ npm run scrape
 - **Supabase All-in-One Setup:** Paste [`supabase/full_setup.sql`](./supabase/full_setup.sql) into the Supabase SQL Editor and click **Run**.
 - **Deploy to Vercel:**
   ```bash
-  npx vercel --prod --yes
+  npx -y vercel --prod --yes
   ```

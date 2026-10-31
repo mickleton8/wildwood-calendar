@@ -38,12 +38,16 @@ All extracted and seeded events must restrict their `tags` array to the controll
 - **Open-Ended Times (`"4pm-Close"`, `"Starts at 8:30 PM"`):** Store the display label in `end_time_label` (`"Close"`, `"Late"`) while assigning a concrete `end_time` (`"23:59"`) for timeline sorting, and attach an `ambiguity_flags` entry on `end_time` so the Split-Screen Reviewer highlights it in amber.
 - **Fuzzy Diff Matching:** `attachFuzzyDiffMatches()` matches candidate items against existing occurrences by `(venue_id, occurrence_date, category)` (within a 3-hour start window) to badge cards as `✨ NEW` vs `🔄 UPDATE (Diff)`.
 
-### 5. Web-Verified Schedules & Data Integrity (`src/data/seedData.ts`)
-- **Zero Synthetic / Invented Schedules:** All recurring rules (`SEED_RECURRING_RULES`, 24 verified rules) and one-off events (`SEED_ONE_OFF_OCCURRENCES`, 6 verified November live music events from `mudhenbrew.com/events`) must be verified from official venue websites or published social schedules. Never invent fake bands or unverified drink specials.
-- **22-Day Scrubber & 30-Day Materialization Horizon:** `src/App.tsx` renders a 22-day horizontal date scrubber so users can browse upcoming multi-week live music lineups, backed by `public.materialize_recurring_rules(p_days_ahead => 30)` in Supabase.
-- **Local Cache Versioning:** Whenever `SEED_VENUES`, `SEED_RECURRING_RULES`, or `SEED_ONE_OFF_OCCURRENCES` change in `src/data/seedData.ts`, bump the `STORAGE_KEYS` suffix in `src/lib/supabase.ts` (currently `v3`) so browsers refresh cached fallback state.
+### 5. Web-Verified Schedules & 3-Tier Seasonal Engine (`src/data/seedData.ts` & `src/data/venuesRoster.ts`)
+- **Zero Synthetic / Invented Schedules:** All recurring rules and one-off events must be verified from official venue websites or published social schedules. Never invent fake bands or unverified drink specials.
+- **3-Tier Seasonal Status:** Every venue has `seasonal_status`: `'open'` (22 venues, open 5-7 days), `'weekends_only'` (8 venues, restricted to `open_days_of_week` like Thu–Sun), or `'closed_for_season'` (27 venues, e.g. Mad Viking Dock Bar, North End American Grill, Curran's Irish Inn, Two Mile Crab House).
+- **Paused Summer Templates:** When a venue is `closed_for_season`, its summer rules are kept in the database with `is_active = false` (saved for Spring reopening). The materialization RPC and client mirror produce zero rows for closed venues.
+- **Open-Days Intersection:** For `weekends_only` venues, recurring rules only materialize on days matching `open_days_of_week` (e.g., The Inlet's 3–6 PM Happy Hour only appears on Thu/Fri).
+- **22-Day Scrubber & 30-Day Materialization Horizon:** `src/App.tsx` renders a 22-day horizontal date scrubber backed by `public.materialize_recurring_rules(p_days_ahead => 30)` in Supabase (currently 328 active verified occurrences).
+- **Local Cache Versioning:** Whenever `SEED_VENUES`, `SEED_RECURRING_RULES`, or `SEED_ONE_OFF_OCCURRENCES` change, bump `STORAGE_KEYS` suffix in `src/lib/supabase.ts` (currently `v4`) so browsers refresh cached fallback state.
 
 ### 6. Environment Variables & Deployment Gotchas
 - **Supabase Key Naming:** Supabase's dashboard Connect modal provides `VITE_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`). `src/lib/supabase.ts` checks `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY`. Keep both supported.
 - **Vercel CLI v65+ Env Var Quirk:** When adding `VITE_*` API keys via Vercel CLI v65+, pass `--environment production --type config --force` (using `printf "value" | npx vercel env add KEY --environment production --type config --force`) to avoid interactive credential-exposure blocks.
-- **Deploying Updates:** Run `npm run build` to verify TypeScript (`tsc -b`) and Vite bundle cleanly, commit and push to `origin main`, then deploy with `npx vercel --prod --yes`.
+- **Non-Interactive Vercel Deploy:** Always invoke Vercel with `npx -y vercel --prod --yes` (passing `-y` to `npx` prevents hanging on package version prompts).
+- **Deploying Updates:** Run `npm run build` to verify TypeScript (`tsc -b`) and Vite bundle cleanly, commit and push to `origin main`, then deploy with `npx -y vercel --prod --yes`.
