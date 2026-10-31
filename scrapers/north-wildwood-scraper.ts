@@ -34,7 +34,7 @@ const NORTH_WILDWOOD_TARGETS: VenueScrapeTarget[] = [
   {
     slug: 'owens-pub',
     name: "Owen's Pub",
-    url: 'https://owenspubnw.com',
+    url: 'https://owens.pub/',
     type: 'html_events',
     selector: 'body',
   },

@@ -170,7 +170,7 @@ export const SEED_RECURRING_RULES: RecurringRule[] = [
       '$6 Wings & $11.99 Chicken Pot Pie / Meatloaf Dinners',
     ],
     tags: ['trivia_bingo', 'wings', 'draft_beer', 'no_cover'],
-    notes: 'Verified via owenspubnw.com.',
+    notes: 'Verified via owens.pub.',
     valid_from: '2026-01-01',
     valid_until: null,
     is_active: true,

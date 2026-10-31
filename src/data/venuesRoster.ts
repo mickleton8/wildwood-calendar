@@ -51,7 +51,7 @@ export const VERIFIED_57_VENUES: Venue[] = [
     "cross_street": "17th & New Jersey Ave",
     "lat": 38.9968,
     "lng": -74.7995,
-    "website_url": "https://owenspubnw.com",
+    "website_url": "https://owens.pub/",
     "phone": "(609) 729-7290",
     "is_year_round": true,
     "is_active": true,

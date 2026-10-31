@@ -5,7 +5,7 @@ create policy "Crew can insert/update venues" on public.venues for all using (tr
 insert into public.venues (id, slug, name, neighborhood, address, cross_street, lat, lng, website_url, phone, is_year_round)
 values
   ('11111111-1111-1111-1111-111111111101', 'anglesea-pub', 'Anglesea Pub', 'North Wildwood', '116 W 1st Ave, North Wildwood, NJ 08260', '1st & Olde New Jersey Ave', 39.0074, -74.7942, 'https://theangleseapub.com', '(609) 729-1133', true),
-  ('11111111-1111-1111-1111-111111111102', 'owens-pub', 'Owen''s Pub', 'North Wildwood', '119 E 17th Ave, North Wildwood, NJ 08260', '17th & New Jersey Ave', 38.9968, -74.7995, 'https://owenspubnw.com', '(609) 729-7290', true),
+  ('11111111-1111-1111-1111-111111111102', 'owens-pub', 'Owen''s Pub', 'North Wildwood', '119 E 17th Ave, North Wildwood, NJ 08260', '17th & New Jersey Ave', 38.9968, -74.7995, 'https://owens.pub/', '(609) 729-7290', true),
   ('11111111-1111-1111-1111-111111111103', 'keenans-irish-pub', 'Keenan''s Irish Pub', 'North Wildwood', '113 Olde New Jersey Ave, North Wildwood, NJ 08260', 'Walnut & Olde New Jersey Ave', 39.0065, -74.7931, 'https://keenansirishpub.com', '(609) 729-3344', false),
   ('11111111-1111-1111-1111-111111111104', 'joe-joes-place', 'Joe Joe''s Place Tacos & Tequila', 'North Wildwood', '201 Olde New Jersey Ave, North Wildwood, NJ 08260', '2nd & Olde New Jersey Ave', 39.0061, -74.7938, null, '(609) 522-5646', true),
   ('11111111-1111-1111-1111-111111111105', 'flip-flopz', 'Flip Flopz Restaurant & Bar', 'North Wildwood', '106 W Spruce Ave, North Wildwood, NJ 08260', 'Spruce & Olde New Jersey Ave', 39.0059, -74.7928, 'https://flipflopzbeachbar.com', '(609) 522-3350', false),
