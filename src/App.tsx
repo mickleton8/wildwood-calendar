@@ -144,6 +144,9 @@ export function App() {
 
   // Navigation & Filters
   const [selectedDate, setSelectedDate] = useState<string>(activeAnchorDate);
+  const [liveEasternDate, setLiveEasternDate] = useState<string>(
+    easternInitial.dateStr || ANCHOR_DATE
+  );
   const [selectedArea, setSelectedArea] = useState<'all' | CorridorArea>('all');
   const [timeMode, setTimeMode] = useState<TimeFilterMode>('all_day');
   const [clockSource, setClockSource] = useState<ClockSourceMode>('live_eastern');
@@ -179,7 +182,8 @@ export function App() {
   // Tick real-time America/New_York clock every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
-      const { time24 } = getEasternNow();
+      const { dateStr, time24 } = getEasternNow();
+      setLiveEasternDate(dateStr || ANCHOR_DATE);
       setLiveEasternTime(time24);
     }, 30000);
     return () => clearInterval(interval);
@@ -258,6 +262,11 @@ export function App() {
 
   // Compute live status for an occurrence relative to activeClockTime
   const getLiveStatus = (occ: CalendarOccurrence) => {
+    // Dynamic countdowns and active badges only apply on today's date
+    if (occ.occurrence_date !== liveEasternDate) {
+      return { state: 'other_day' as const, label: '' };
+    }
+
     const startMin = timeToMinutes(occ.start_time_local);
     const endMin = timeToMinutes(occ.end_time_local);
     const effectiveEnd = endMin <= startMin ? endMin + 24 * 60 : endMin;
@@ -332,6 +341,7 @@ export function App() {
           if (!hasAllSelectedTags) return false;
         }
         if (timeMode === 'happening_now') {
+          if (occ.occurrence_date !== liveEasternDate) return false;
           const status = getLiveStatus(occ);
           if (status.state !== 'active' && status.state !== 'starting_soon') {
             return false;
@@ -370,6 +380,7 @@ export function App() {
     selectedTags,
     timeMode,
     activeClockTime,
+    liveEasternDate,
     searchQuery,
     venueMap,
   ]);
@@ -740,7 +751,12 @@ export function App() {
               return (
                 <button
                   key={d.dateStr}
-                  onClick={() => setSelectedDate(d.dateStr)}
+                  onClick={() => {
+                    setSelectedDate(d.dateStr);
+                    if (d.dateStr !== liveEasternDate && timeMode === 'happening_now') {
+                      setTimeMode('all_day');
+                    }
+                  }}
                   className={`flex flex-col items-start shrink-0 rounded-xl border px-3.5 py-2 text-left transition cursor-pointer ${
                     isSelected
                       ? 'border-amber-400 bg-amber-500/20 text-white shadow-md shadow-amber-500/10'
@@ -823,7 +839,10 @@ export function App() {
             </button>
 
             <button
-              onClick={() => setTimeMode('happening_now')}
+              onClick={() => {
+                setTimeMode('happening_now');
+                setSelectedDate(liveEasternDate);
+              }}
               className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
                 timeMode === 'happening_now'
                   ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
@@ -1000,6 +1019,7 @@ export function App() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredOccurrences.map((occ) => {
               const venue = venueMap.get(occ.venue_id);
+              const isEventToday = occ.occurrence_date === liveEasternDate;
               const liveStatus = getLiveStatus(occ);
               const isLiveMusic = occ.category === 'live_music';
 
@@ -1007,7 +1027,7 @@ export function App() {
                 <article
                   key={occ.id}
                   className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition ${
-                    liveStatus.state === 'active'
+                    isEventToday && liveStatus.state === 'active'
                       ? 'border-emerald-500/40 bg-gradient-to-b from-slate-900 to-slate-900/95 shadow-lg shadow-emerald-950/20'
                       : isLiveMusic
                       ? 'border-indigo-500/30 bg-slate-900/90 hover:border-indigo-500/50'
@@ -1031,29 +1051,31 @@ export function App() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-1.5">
-                        {liveStatus.state === 'active' && (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
-                            <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                            {liveStatus.label}
-                          </span>
-                        )}
-                        {liveStatus.state === 'starting_soon' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
-                            ⏳ {liveStatus.label}
-                          </span>
-                        )}
-                        {liveStatus.state === 'upcoming' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-medium text-slate-300">
-                            {liveStatus.label}
-                          </span>
-                        )}
-                        {liveStatus.state === 'ended' && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-950 border border-slate-800 px-2.5 py-0.5 text-[11px] text-slate-500">
-                            {liveStatus.label}
-                          </span>
-                        )}
-                      </div>
+                      {isEventToday && (
+                        <div className="flex items-center gap-1.5">
+                          {liveStatus.state === 'active' && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
+                              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                              {liveStatus.label}
+                            </span>
+                          )}
+                          {liveStatus.state === 'starting_soon' && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-[11px] font-bold text-amber-300">
+                              ⏳ {liveStatus.label}
+                            </span>
+                          )}
+                          {liveStatus.state === 'upcoming' && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2.5 py-0.5 text-[11px] font-medium text-slate-300">
+                              {liveStatus.label}
+                            </span>
+                          )}
+                          {liveStatus.state === 'ended' && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-950 border border-slate-800 px-2.5 py-0.5 text-[11px] text-slate-500">
+                              {liveStatus.label}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-2.5 flex items-baseline justify-between gap-2">
