@@ -1,9 +1,10 @@
 # Wildwood Pulse — Agent Guidelines & Project Memory
 
 ## Project Overview
-**Wildwood Pulse** is a mobile-first Progressive Web App (PWA) built for a local group of Wildwood, NJ friends and family to track Happy Hours, Food/Drink Specials, Raw Bars, and Live Music across the **North Wildwood Entertainment District** (Olde New Jersey Ave, Anglesea, Walnut, Spruce, and Wildwood border staples).
+**Wildwood Pulse** is a mobile-first Progressive Web App (PWA) built for a local group of Wildwood, NJ friends and family to track Happy Hours, Food/Drink Specials, Raw Bars, and Live Music across the **Wildwood-to-Cape-May Corridor** (`North Wildwood`, `Wildwood`, `Wildwood Crest`, `Cape May`, and `North Cape May & Off-Island`).
 
 - **Production URL:** `https://wildwood-calendar.vercel.app`
+- **GitHub Repository:** `git@github.com:mickleton8/wildwood-calendar.git` (branch `main`)
 - **Supabase Project URL:** `https://bbeczagskcxbagxjkvwn.supabase.co`
 - **Tech Stack:** React 19, Vite 6, TypeScript, Tailwind CSS v4, Lucide Icons, Supabase (PostgreSQL + Storage + Realtime), Google Gemini 2.5 Flash Vision (`@google/genai` / REST API), Playwright (`scrapers/north-wildwood-scraper.ts`).
 
@@ -37,7 +38,12 @@ All extracted and seeded events must restrict their `tags` array to the controll
 - **Open-Ended Times (`"4pm-Close"`, `"Starts at 8:30 PM"`):** Store the display label in `end_time_label` (`"Close"`, `"Late"`) while assigning a concrete `end_time` (`"23:59"`) for timeline sorting, and attach an `ambiguity_flags` entry on `end_time` so the Split-Screen Reviewer highlights it in amber.
 - **Fuzzy Diff Matching:** `attachFuzzyDiffMatches()` matches candidate items against existing occurrences by `(venue_id, occurrence_date, category)` (within a 3-hour start window) to badge cards as `✨ NEW` vs `🔄 UPDATE (Diff)`.
 
-### 5. Environment Variables & Deployment Gotchas
+### 5. Web-Verified Schedules & Data Integrity (`src/data/seedData.ts`)
+- **Zero Synthetic / Invented Schedules:** All recurring rules (`SEED_RECURRING_RULES`, 24 verified rules) and one-off events (`SEED_ONE_OFF_OCCURRENCES`, 6 verified November live music events from `mudhenbrew.com/events`) must be verified from official venue websites or published social schedules. Never invent fake bands or unverified drink specials.
+- **22-Day Scrubber & 30-Day Materialization Horizon:** `src/App.tsx` renders a 22-day horizontal date scrubber so users can browse upcoming multi-week live music lineups, backed by `public.materialize_recurring_rules(p_days_ahead => 30)` in Supabase.
+- **Local Cache Versioning:** Whenever `SEED_VENUES`, `SEED_RECURRING_RULES`, or `SEED_ONE_OFF_OCCURRENCES` change in `src/data/seedData.ts`, bump the `STORAGE_KEYS` suffix in `src/lib/supabase.ts` (currently `v3`) so browsers refresh cached fallback state.
+
+### 6. Environment Variables & Deployment Gotchas
 - **Supabase Key Naming:** Supabase's dashboard Connect modal provides `VITE_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`). `src/lib/supabase.ts` checks `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY`. Keep both supported.
 - **Vercel CLI v65+ Env Var Quirk:** When adding `VITE_*` API keys via Vercel CLI v65+, pass `--environment production --type config --force` (using `printf "value" | npx vercel env add KEY --environment production --type config --force`) to avoid interactive credential-exposure blocks.
-- **Deploying Updates:** Run `npm run build` to verify TypeScript (`tsc -b`) and Vite bundle cleanly, then deploy with `npx vercel --prod --yes`.
+- **Deploying Updates:** Run `npm run build` to verify TypeScript (`tsc -b`) and Vite bundle cleanly, commit and push to `origin main`, then deploy with `npx vercel --prod --yes`.
