@@ -44,9 +44,14 @@ All extracted and seeded events must restrict their `tags` array to the controll
 - **Paused Summer Templates:** When a venue is `closed_for_season`, its summer rules are kept in the database with `is_active = false` (saved for Spring reopening). The materialization RPC and client mirror produce zero rows for closed venues.
 - **Open-Days Intersection:** For `weekends_only` venues, recurring rules only materialize on days matching `open_days_of_week` (e.g., The Inlet's 3–6 PM Happy Hour only appears on Thu/Fri).
 - **22-Day Scrubber & 30-Day Materialization Horizon:** `src/App.tsx` renders a 22-day horizontal date scrubber backed by `public.materialize_recurring_rules(p_days_ahead => 30)` in Supabase (currently 328 active verified occurrences).
-- **Local Cache Versioning:** Whenever `SEED_VENUES`, `SEED_RECURRING_RULES`, or `SEED_ONE_OFF_OCCURRENCES` change, bump `STORAGE_KEYS` suffix in `src/lib/supabase.ts` (currently `v4`) so browsers refresh cached fallback state.
+- **Local Cache Versioning:** Whenever `SEED_VENUES`, `SEED_RECURRING_RULES`, or `SEED_ONE_OFF_OCCURRENCES` change, bump `STORAGE_KEYS` suffix in `src/lib/supabase.ts` (currently `v5`) so browsers refresh cached fallback state.
 
-### 6. Environment Variables & Deployment Gotchas
+### 6. Timeline Card Presentation & UX Rules
+- **Live Status Scoped to Today:** Dynamic status badges (`Active Now...`, `Starts in...`, `Ending Soon...`, `Ended earlier today`) and the green glowing border are strictly restricted to `Today` (`occ.occurrence_date === liveEasternDate`). Non-current calendar dates render only their static time window (`format12Hour(occ.start_time_local) – format12Hour(occ.end_time_local)`).
+- **No Truncated Specials / Flex-Wrap Flow:** Never truncate deal strings with `...`. The `deals_summary` container uses `flex flex-wrap gap-1.5` with `inline-flex` items so multiple short deals (like drink specials or \$1 oysters) pack 2–4 per row without expanding card height into a long vertical list.
+- **Card Header Venue Website Links:** Each card header renders a direct `Website ↗` link whenever `venue.website_url` is present.
+
+### 7. Environment Variables & Deployment Gotchas
 - **Supabase Key Naming:** Supabase's dashboard Connect modal provides `VITE_SUPABASE_PUBLISHABLE_KEY` (`sb_publishable_...`). `src/lib/supabase.ts` checks `import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY`. Keep both supported.
 - **Vercel CLI v65+ Env Var Quirk:** When adding `VITE_*` API keys via Vercel CLI v65+, pass `--environment production --type config --force` (using `printf "value" | npx vercel env add KEY --environment production --type config --force`) to avoid interactive credential-exposure blocks.
 - **Non-Interactive Vercel Deploy:** Always invoke Vercel with `npx -y vercel --prod --yes` (passing `-y` to `npx` prevents hanging on package version prompts).
