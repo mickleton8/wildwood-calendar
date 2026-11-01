@@ -61,6 +61,8 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
   );
   const [candidates, setCandidates] = useState<ExtractedCandidateItem[]>([]);
   const [isExtracting, setIsExtracting] = useState<boolean>(false);
+  const [usedLiveAi, setUsedLiveAi] = useState<boolean>(true);
+  const [extractionNotice, setExtractionNotice] = useState<string | null>(null);
   const [zoom, setZoom] = useState<number>(1);
   const [newDealInputs, setNewDealInputs] = useState<Record<string, string>>({});
 
@@ -73,6 +75,8 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
     setSelectedVenueId(preset.venue_id);
     setFlyerImageUrl(preset.flyer_svg_data_uri);
     setSourceLabel(preset.source_label);
+    setUsedLiveAi(true);
+    setExtractionNotice(null);
     const withDiffs = attachFuzzyDiffMatches(
       preset.extracted_items,
       existingOccurrences,
@@ -105,6 +109,7 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
 
   const handleCustomFileUpload = async (file: File) => {
     setIsExtracting(true);
+    setExtractionNotice(null);
     try {
       const venue = venues.find((v) => v.id === selectedVenueId) || venues[0];
       const result = await extractCustomFlyerImage(
@@ -114,11 +119,19 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
         crewPin
       );
       setFlyerImageUrl(result.imageDataUrl);
+      setUsedLiveAi(result.usedLiveAi);
       setSourceLabel(
         result.usedLiveAi
-          ? `Gemini 2.5 Flash Vision (${file.name})`
-          : `Uploaded Screenshot (${file.name})`
+          ? `Gemini 3.5 Flash Vision (${file.name})`
+          : `Manual Fallback (${file.name})`
       );
+      if (!result.usedLiveAi) {
+        setExtractionNotice(
+          result.extractionError
+            ? `AI Vision notice: ${result.extractionError}. Displaying editable candidate form.`
+            : 'AI Vision could not parse this file automatically. Displaying editable candidate form.'
+        );
+      }
       const withDiffs = attachFuzzyDiffMatches(
         result.items,
         existingOccurrences,
@@ -279,6 +292,15 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
                 <span className="truncate font-medium text-slate-300">
                   {sourceLabel}
                 </span>
+                {usedLiveAi ? (
+                  <span className="shrink-0 rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
+                    ✨ Vision AI
+                  </span>
+                ) : (
+                  <span className="shrink-0 rounded-full bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                    ⚠️ Manual Mode
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -306,7 +328,7 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
                 <div className="flex flex-col items-center gap-3 text-center p-6">
                   <RefreshCw className="h-8 w-8 animate-spin text-amber-400" />
                   <p className="text-sm font-semibold text-white">
-                    Running Gemini 2.5 Flash Vision Extraction...
+                    Running Gemini 3.5 Flash Vision Extraction...
                   </p>
                   <p className="text-xs text-slate-400 max-w-xs">
                     Resolving relative dates (&ldquo;This Friday&rdquo;), open-ended times (&ldquo;8:30pm-Close&rdquo;), and checking for existing venue schedule conflicts.
@@ -378,6 +400,21 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
 
             {/* Candidate Cards List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
+              {extractionNotice && (
+                <div className="flex items-start justify-between gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+                    <span>{extractionNotice}</span>
+                  </div>
+                  <button
+                    onClick={() => setExtractionNotice(null)}
+                    className="rounded-lg p-1 text-amber-400 hover:text-white hover:bg-slate-800 shrink-0"
+                    title="Dismiss notice"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )}
               {candidates.map((cand) => {
                 const unresolvedFlags = cand.ambiguity_flags.filter((f) => !f.resolved);
                 const hasEndTimeFlag = unresolvedFlags.some((f) => f.field === 'end_time');
