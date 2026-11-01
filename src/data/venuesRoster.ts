@@ -1161,16 +1161,10 @@ export const VERIFIED_57_VENUES: Venue[] = [
     "lng": -74.848,
     "website_url": "https://whaletalebrewing.com",
     "phone": "(609) 960-8253",
-    "is_year_round": true,
+    "is_year_round": false,
     "is_active": true,
-    "seasonal_status": "open",
-    "open_days_of_week": [
-      0,
-      3,
-      4,
-      5,
-      6
-    ],
-    "seasonal_note": "Open Year-Round Wed–Sun (Closed Mon & Tue)"
+    "seasonal_status": "closed_for_season",
+    "open_days_of_week": [],
+    "seasonal_note": "Closed for Remainder of Season (Renovations) — Reopening Date TBD"
   }
 ];

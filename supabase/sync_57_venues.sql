@@ -60,7 +60,7 @@ values
   ('11111111-1111-1111-1111-111111111154', 'red-brick-ale-house', 'Red Brick Ale House', 'North Cape May & Off-Island', '3832 Bayshore Rd, North Cape May, NJ 08204', 'Bayshore & Town Bank Rd', 38.981, -74.948, 'https://redbrickalehouse.com/', '(609) 886-2200', true),
   ('11111111-1111-1111-1111-111111111155', 'gusto-brewing-company', 'Gusto Brewing Company', 'North Cape May & Off-Island', '3860 Bayshore Rd, North Cape May, NJ 08204', 'Bayshore Mall Strip', 38.9822, -74.9475, 'https://gustobrewco.com', '(609) 849-8260', true),
   ('11111111-1111-1111-1111-111111111156', 'nauti-spirits-distillery', 'Nauti Spirits Distillery', 'North Cape May & Off-Island', '916 Shunpike Rd, Cape May, NJ 08204', 'Shunpike Rd Coastal Farm', 38.9885, -74.918, 'https://nautispirits.com', '(609) 770-3381', true),
-  ('11111111-1111-1111-1111-111111111157', 'whale-tale-brewing', 'Whale Tale Brewing Company', 'North Cape May & Off-Island', '28 Indian Trail Rd, Suite 103, Cape May Court House, NJ 08210', 'Burleigh / Route 9 & Indian Trail', 39.048, -74.848, 'https://whaletalebrewing.com', '(609) 960-8253', true)
+  ('11111111-1111-1111-1111-111111111157', 'whale-tale-brewing', 'Whale Tale Brewing Company', 'North Cape May & Off-Island', '28 Indian Trail Rd, Suite 103, Cape May Court House, NJ 08210', 'Burleigh / Route 9 & Indian Trail', 39.048, -74.848, 'https://whaletalebrewing.com', '(609) 960-8253', false)
 on conflict (id) do update set
   slug = excluded.slug,
   name = excluded.name,

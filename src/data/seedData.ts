@@ -783,10 +783,10 @@ export const SEED_RECURRING_RULES: RecurringRule[] = [
       'Wednesday Wing Specials & Ocean-Inspired Craft Brews',
     ],
     tags: ['trivia_bingo', 'wings', 'draft_beer', 'no_cover'],
-    notes: 'Verified via whaletalebrewing.com (Open Wed–Sun Year-Round).',
+    notes: 'Paused: Closed for remainder of season for renovations (reopening TBD).',
     valid_from: '2026-01-01',
     valid_until: null,
-    is_active: true,
+    is_active: false,
   },
 
   // 18. Anglesea Aleworks, Duffinetti's & Poppi's Brick Oven (Wildwood)
