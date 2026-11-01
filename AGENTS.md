@@ -6,7 +6,7 @@
 - **Production URL:** `https://wildwood-calendar.vercel.app`
 - **GitHub Repository:** `git@github.com:mickleton8/wildwood-calendar.git` (branch `main`)
 - **Supabase Project URL:** `https://bbeczagskcxbagxjkvwn.supabase.co`
-- **Tech Stack:** React 19, Vite 6, TypeScript, Tailwind CSS v4, Lucide Icons, Supabase (PostgreSQL + Storage + Realtime), Google Gemini 2.5 Flash Vision (`@google/genai` / REST API), Playwright (`scrapers/north-wildwood-scraper.ts`).
+- **Tech Stack:** React 19, Vite 6, TypeScript, Tailwind CSS v4, Lucide Icons, Supabase (PostgreSQL + Storage + Realtime), Google Gemini 3.5 Flash Vision (`@google/genai` / REST API), Playwright (`scrapers/north-wildwood-scraper.ts`).
 
 ---
 
@@ -34,17 +34,19 @@ All extracted and seeded events must restrict their `tags` array to the controll
 - **Music/Vibe:** `live_band`, `acoustic_solo`, `dj`, `irish_music`, `trivia_bingo`, `no_cover`, `outdoor_deck`
 
 ### 4. Vision AI Extraction & Edge Cases (`src/lib/flyerExtractor.ts` & `SplitScreenReviewer.tsx`)
-- **Relative Date Anchoring:** Always pass the current `America/New_York` date (`getEasternNow().dateStr`) into Gemini prompts so `"This Friday"` or `"Saturday Oct 31"` resolves to an exact `YYYY-MM-DD` string.
+- **Active Multimodal Model Endpoint:** Calls `gemini-3.5-flash` with automatic fallback to `gemini-3.5-flash-lite`, passing `responseMimeType: 'application/json'`. Sanitizes responses by stripping markdown fences (` ```json `) before parsing.
+- **Relative Date Anchoring:** Always pass the current `America/New_York` date (`getEasternNow().dateStr`) into Gemini prompts so `"This Friday"`, `"Tomorrow"`, or `"Saturday Oct 31"` resolves to an exact `YYYY-MM-DD` string.
+- **Transparent Status Badging:** Reviewer displays a green `✨ Vision AI` badge when the model successfully extracted events, or an amber `⚠️ Manual Mode` badge with an explicit notice banner if an upload drops into manual fallback mode.
 - **Open-Ended Times (`"4pm-Close"`, `"Starts at 8:30 PM"`):** Store the display label in `end_time_label` (`"Close"`, `"Late"`) while assigning a concrete `end_time` (`"23:59"`) for timeline sorting, and attach an `ambiguity_flags` entry on `end_time` so the Split-Screen Reviewer highlights it in amber.
 - **Fuzzy Diff Matching:** `attachFuzzyDiffMatches()` matches candidate items against existing occurrences by `(venue_id, occurrence_date, category)` (within a 3-hour start window) to badge cards as `✨ NEW` vs `🔄 UPDATE (Diff)`.
 
 ### 5. Web-Verified Schedules & 3-Tier Seasonal Engine (`src/data/seedData.ts` & `src/data/venuesRoster.ts`)
 - **Zero Synthetic / Invented Schedules:** All recurring rules and one-off events must be verified from official venue websites or published social schedules. Never invent fake bands or unverified drink specials.
-- **3-Tier Seasonal Status:** Every venue has `seasonal_status`: `'open'` (22 venues, open 5-7 days), `'weekends_only'` (8 venues, restricted to `open_days_of_week` like Thu–Sun), or `'closed_for_season'` (27 venues, e.g. Mad Viking Dock Bar, North End American Grill, Curran's Irish Inn, Two Mile Crab House).
-- **Paused Summer Templates:** When a venue is `closed_for_season`, its summer rules are kept in the database with `is_active = false` (saved for Spring reopening). The materialization RPC and client mirror produce zero rows for closed venues.
+- **3-Tier Seasonal Status:** Every venue has `seasonal_status`: `'open'` (22 venues, open 5-7 days), `'weekends_only'` (8 venues, restricted to `open_days_of_week` like Thu–Sun), or `'closed_for_season'` (27 venues, e.g. Mad Viking Dock Bar, North End American Grill, Curran's Irish Inn, Two Mile Crab House, Whale Tale Brewing Company).
+- **Paused Summer/Renovation Templates:** When a venue is `closed_for_season`, its rules are kept in the database with `is_active = false` (saved for Spring reopening). The materialization RPC and client mirror produce zero rows for closed venues.
 - **Open-Days Intersection:** For `weekends_only` venues, recurring rules only materialize on days matching `open_days_of_week` (e.g., The Inlet's 3–6 PM Happy Hour only appears on Thu/Fri).
-- **22-Day Scrubber & 30-Day Materialization Horizon:** `src/App.tsx` renders a 22-day horizontal date scrubber backed by `public.materialize_recurring_rules(p_days_ahead => 30)` in Supabase (currently 328 active verified occurrences).
-- **Local Cache Versioning:** Whenever `SEED_VENUES`, `SEED_RECURRING_RULES`, or `SEED_ONE_OFF_OCCURRENCES` change, bump `STORAGE_KEYS` suffix in `src/lib/supabase.ts` (currently `v5`) so browsers refresh cached fallback state.
+- **22-Day Scrubber & 30-Day Materialization Horizon:** `src/App.tsx` renders a 22-day horizontal date scrubber backed by `public.materialize_recurring_rules(p_days_ahead => 30)` in Supabase (currently 331 active verified occurrences).
+- **Local Cache Versioning:** Whenever `SEED_VENUES`, `SEED_RECURRING_RULES`, or `SEED_ONE_OFF_OCCURRENCES` change, bump `STORAGE_KEYS` suffix in `src/lib/supabase.ts` (currently `v9`) so browsers refresh cached fallback state.
 
 ### 6. Timeline Card Presentation & UX Rules
 - **Live Status Scoped to Today:** Dynamic status badges (`Active Now...`, `Starts in...`, `Ending Soon...`, `Ended earlier today`) and the green glowing border are strictly restricted to `Today` (`occ.occurrence_date === liveEasternDate`). Non-current calendar dates render only their static time window (`format12Hour(occ.start_time_local) – format12Hour(occ.end_time_local)`).
