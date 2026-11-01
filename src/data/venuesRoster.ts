@@ -1085,6 +1085,7 @@ export const VERIFIED_57_VENUES: Venue[] = [
     "cross_street": "Bayshore & Town Bank Rd",
     "lat": 38.981,
     "lng": -74.948,
+    "website_url": "https://redbrickalehouse.com/",
     "phone": "(609) 886-2200",
     "is_year_round": true,
     "is_active": true,
