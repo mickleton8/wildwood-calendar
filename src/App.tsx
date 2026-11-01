@@ -1149,14 +1149,14 @@ export function App() {
                     </div>
 
                     {occ.deals_summary.length > 0 && (
-                      <ul className="mt-3 flex flex-col gap-1.5">
+                      <ul className="mt-3 flex flex-wrap gap-1.5">
                         {occ.deals_summary.map((deal, idx) => (
                           <li
                             key={idx}
-                            className="flex items-start gap-2 rounded-lg bg-slate-950/75 border border-slate-800/90 px-3 py-2 text-xs font-medium text-slate-200 leading-relaxed"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-950/75 border border-slate-800/90 px-2.5 py-1 text-xs font-medium text-slate-200"
                           >
-                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
-                            <span className="flex-1 break-words">{deal}</span>
+                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                            <span className="leading-snug">{deal}</span>
                           </li>
                         ))}
                       </ul>
