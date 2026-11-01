@@ -489,7 +489,6 @@ export const VERIFIED_57_VENUES: Venue[] = [
     "cross_street": "Pacific & Garfield Ave",
     "lat": 38.985,
     "lng": -74.8175,
-    "website_url": "https://cattlenclover.com",
     "phone": "(609) 522-3800",
     "is_year_round": true,
     "is_active": true,
