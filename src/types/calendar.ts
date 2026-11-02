@@ -8,6 +8,7 @@ export type FilterTag =
   | 'cocktails'
   | 'wine'
   | 'shots'
+  | 'byob'
   | 'wings'
   | 'tacos'
   | 'oysters_clams'
@@ -26,7 +27,7 @@ export interface TagMetadata {
   id: FilterTag;
   label: string;
   emoji: string;
-  group: 'drink' | 'food' | 'music';
+  group: 'drink' | 'food' | 'music' | 'dining';
 }
 
 export type SeasonalStatus = 'open' | 'weekends_only' | 'closed_for_season';
