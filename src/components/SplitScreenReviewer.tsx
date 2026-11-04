@@ -220,7 +220,10 @@ export const SplitScreenReviewer: React.FC<SplitScreenReviewerProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 sm:p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-2 sm:p-4"
+      style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top, 0px))' }}
+    >
       <div className="relative flex flex-col w-full max-w-7xl h-[94vh] rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
         {/* Top Header */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950/80 px-4 py-3">

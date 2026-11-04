@@ -629,7 +629,10 @@ export function App() {
       )}
 
       {/* Top Sticky App Bar */}
-      <header className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl">
+      <header
+        className="sticky top-0 z-30 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
         <div className="mx-auto max-w-6xl px-3 sm:px-6 py-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             {/* Brand Title */}
@@ -823,78 +826,80 @@ export function App() {
           })}
         </div>
 
-        {/* Live Now Bar + Real-Time Eastern Clock & Preview Presets */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-3 sm:px-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setTimeMode('all_day')}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-                timeMode === 'all_day'
-                  ? 'bg-white text-slate-950 shadow'
-                  : 'bg-slate-950 text-slate-400 hover:text-white'
-              }`}
-            >
-              <CalendarIcon className="h-3.5 w-3.5" />
-              <span>Full Day Schedule</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setTimeMode('happening_now');
-                setSelectedDate(liveEasternDate);
-              }}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
-                timeMode === 'happening_now'
-                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
-                  : 'bg-slate-950 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10'
-              }`}
-            >
-              <Flame className="h-3.5 w-3.5" />
-              <span>Happening Now / Starting Soon</span>
-            </button>
-          </div>
-
-          {/* Live Eastern Time vs Preview Clock Switcher */}
-          <div className="flex flex-wrap items-center gap-1.5 text-xs">
-            <button
-              onClick={() => setClockSource('live_eastern')}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition cursor-pointer ${
-                clockSource === 'live_eastern'
-                  ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
-                  : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
-              }`}
-              title="Uses actual real-time America/New_York clock"
-            >
-              <Radio className="h-3 w-3 text-emerald-400 animate-pulse" />
-              <span>Live Shore Time ({format12Hour(liveEasternTime)})</span>
-            </button>
-
-            <span className="text-slate-600 px-0.5">|</span>
-            <span className="text-slate-400 hidden sm:inline items-center gap-1 text-[11px]">
-              Preview:
-            </span>
-            {[
-              { time: '16:30', label: '4:30 PM HH' },
-              { time: '18:15', label: '6:15 PM Raw Bar' },
-              { time: '21:00', label: '9:00 PM Bands' },
-            ].map((preset) => (
+        {/* Live Now Bar + Real-Time Eastern Clock & Preview Presets (Only displayed for Today) */}
+        {selectedDate === liveEasternDate && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-3 sm:px-4">
+            <div className="flex flex-wrap items-center gap-2">
               <button
-                key={preset.time}
-                onClick={() => {
-                  setClockSource('simulated');
-                  setSimulatedClock(preset.time);
-                }}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition cursor-pointer ${
-                  clockSource === 'simulated' && simulatedClock === preset.time
-                    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
-                    : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                onClick={() => setTimeMode('all_day')}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                  timeMode === 'all_day'
+                    ? 'bg-white text-slate-950 shadow'
+                    : 'bg-slate-950 text-slate-400 hover:text-white'
                 }`}
               >
-                {preset.label}
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span>Full Day Schedule</span>
               </button>
-            ))}
+
+              <button
+                onClick={() => {
+                  setTimeMode('happening_now');
+                  setSelectedDate(liveEasternDate);
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-1.5 text-xs font-bold transition cursor-pointer ${
+                  timeMode === 'happening_now'
+                    ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20'
+                    : 'bg-slate-950 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/10'
+                }`}
+              >
+                <Flame className="h-3.5 w-3.5" />
+                <span>Happening Now / Starting Soon</span>
+              </button>
+            </div>
+
+            {/* Live Eastern Time vs Preview Clock Switcher */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs">
+              <button
+                onClick={() => setClockSource('live_eastern')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition cursor-pointer ${
+                  clockSource === 'live_eastern'
+                    ? 'bg-emerald-500/20 border border-emerald-500/50 text-emerald-300'
+                    : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                }`}
+                title="Uses actual real-time America/New_York clock"
+              >
+                <Radio className="h-3 w-3 text-emerald-400 animate-pulse" />
+                <span>Live Shore Time ({format12Hour(liveEasternTime)})</span>
+              </button>
+
+              <span className="text-slate-600 px-0.5">|</span>
+              <span className="text-slate-400 hidden sm:inline items-center gap-1 text-[11px]">
+                Preview:
+              </span>
+              {[
+                { time: '16:30', label: '4:30 PM HH' },
+                { time: '18:15', label: '6:15 PM Raw Bar' },
+                { time: '21:00', label: '9:00 PM Bands' },
+              ].map((preset) => (
+                <button
+                  key={preset.time}
+                  onClick={() => {
+                    setClockSource('simulated');
+                    setSimulatedClock(preset.time);
+                  }}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition cursor-pointer ${
+                    clockSource === 'simulated' && simulatedClock === preset.time
+                      ? 'bg-amber-500/20 border border-amber-500/50 text-amber-300'
+                      : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Category Tabs + Search + Venue Selector */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
@@ -1245,7 +1250,10 @@ export function App() {
 
       {/* 57-Venue Corridor Directory Modal */}
       {showVenuesDirectory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-3 sm:p-6">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-3 sm:p-6"
+          style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))' }}
+        >
           <div className="flex flex-col w-full max-w-5xl max-h-[88vh] rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-950 px-5 py-4">
               <div className="flex items-center gap-2.5">
@@ -1454,7 +1462,10 @@ export function App() {
 
       {/* PWA Install Guide Modal for Friends & Family */}
       {showPwaGuide && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4"
+          style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))' }}
+        >
           <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1513,7 +1524,10 @@ export function App() {
 
       {/* Crew PIN Unlock Modal */}
       {showPinPrompt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-sm p-4"
+          style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0px))' }}
+        >
           <form
             onSubmit={handleUnlockCrewSubmit}
             className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4"
