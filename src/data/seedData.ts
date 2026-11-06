@@ -1052,6 +1052,49 @@ export const SEED_RECURRING_RULES: RecurringRule[] = [
     valid_until: null,
     is_active: true,
   },
+
+  // 79. Island Bowl & Family Entertainment Center (Wildwood)
+  {
+    id: '22222222-2222-2222-2222-222222222251',
+    venue_id: '11111111-1111-1111-1111-111111111179',
+    category: 'happy_hour',
+    title: 'Island Bowl Daily Happy Hour at Anchor Bar & Grill',
+    days_of_week: [0, 1, 2, 3, 4, 5, 6],
+    start_time: '16:00',
+    end_time: '19:00',
+    end_time_label: null,
+    deals_summary: [
+      '$2 Domestic Bottles',
+      '$3 Imported Beers',
+      '$4 House Wines',
+      '$5 Stateside Vodka & Seltzers',
+    ],
+    tags: ['cans_bottles', 'wine', 'cocktails'],
+    notes: 'Verified via islandbowling.com (Anchor Bar & Grill inside Island Bowl, 4:00 PM to 7:00 PM daily).',
+    valid_from: '2026-01-01',
+    valid_until: null,
+    is_active: true,
+  },
+  {
+    id: '22222222-2222-2222-2222-222222222252',
+    venue_id: '11111111-1111-1111-1111-111111111179',
+    category: 'daily_special',
+    title: "Island Bowl $2 Tuesday Special",
+    days_of_week: [2],
+    start_time: '17:00',
+    end_time: '23:59',
+    end_time_label: 'Midnight',
+    deals_summary: [
+      '$2 Draft Beers (5 PM – Midnight)',
+      '$2 Pizza Slices',
+      '$2 Bowling Games',
+    ],
+    tags: ['draft_beer', 'pizza'],
+    notes: 'Verified via islandbowling.com (Every Tuesday 5:00 PM to Midnight).',
+    valid_from: '2026-01-01',
+    valid_until: null,
+    is_active: true,
+  },
 ];
 
 // Create SVG data URIs for realistic Flyers in the Split-Screen Reviewer

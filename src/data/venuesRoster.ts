@@ -1523,5 +1523,22 @@ export const VERIFIED_57_VENUES: Venue[] = [
     "seasonal_status": "open",
     "open_days_of_week": [0, 1, 2, 3, 4, 5, 6],
     "seasonal_note": "Open Daily Year-Round"
+  },
+  {
+    "id": "11111111-1111-1111-1111-111111111179",
+    "slug": "island-bowl-family-entertainment-center",
+    "name": "Island Bowl & Family Entertainment Center",
+    "neighborhood": "Wildwood",
+    "address": "3401 New Jersey Ave, Wildwood, NJ 08260",
+    "cross_street": "34th & New Jersey Ave",
+    "lat": 38.9905,
+    "lng": -74.8153,
+    "website_url": "https://islandbowling.com",
+    "phone": "(609) 729-0111",
+    "is_year_round": true,
+    "is_active": true,
+    "seasonal_status": "open",
+    "open_days_of_week": [0, 1, 2, 3, 4, 5, 6],
+    "seasonal_note": "Open Daily Year-Round (Bowling, Anchor Bar & Grill, Arcade)"
   }
 ];
