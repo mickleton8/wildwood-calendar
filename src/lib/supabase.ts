@@ -55,9 +55,9 @@ export function getEasternNow(): { dateStr: string; time24: string } {
 }
 
 const STORAGE_KEYS = {
-  VENUES: 'ww_pulse_venues_v12',
-  RULES: 'ww_pulse_rules_v12',
-  OCCURRENCES: 'ww_pulse_occurrences_v12',
+  VENUES: 'ww_pulse_venues_v13',
+  RULES: 'ww_pulse_rules_v13',
+  OCCURRENCES: 'ww_pulse_occurrences_v13',
   CREW_PIN_UNLOCKED: 'ww_pulse_crew_unlocked_v1',
 };
 
