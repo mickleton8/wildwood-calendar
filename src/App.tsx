@@ -3,6 +3,8 @@ import {
   Beer,
   Building2,
   Calendar as CalendarIcon,
+  ChevronDown,
+  ChevronUp,
   Cloud,
   Database,
   ExternalLink,
@@ -12,6 +14,7 @@ import {
   KeyRound,
   Lock,
   MapPin,
+  MoreVertical,
   Music,
   Phone,
   PlusCircle,
@@ -19,11 +22,13 @@ import {
   Repeat,
   RotateCcw,
   Search,
+  SlidersHorizontal,
   Smartphone,
   Sparkles,
   Unlock,
   X,
   XCircle,
+  Zap,
 } from 'lucide-react';
 import { FlyerLightboxModal } from './components/FlyerLightboxModal';
 import { RecurringRulesModal } from './components/RecurringRulesModal';
@@ -130,6 +135,37 @@ function getNext10Days(anchorDateStr: string) {
   return days;
 }
 
+/**
+ * Highlights dollar prices, 'Free', '2x', and percentage discounts inside deals_summary
+ * strings with high-contrast colored typography for effortless skimming.
+ */
+function renderHighlightedDeal(deal: string, category: EventCategory) {
+  const parts = deal.split(/(\$\d+(?:\.\d{2})?|\bFree\b|\b2x\b|\b\d+%\s+off\b)/i);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        const isMatch = /^(\$\d+(?:\.\d{2})?|Free|2x|\d+%\s+off)$/i.test(part);
+        if (isMatch) {
+          return (
+            <span
+              key={i}
+              className={`font-black tracking-tight ${
+                category === 'live_music'
+                  ? 'text-indigo-300'
+                  : 'text-amber-300'
+              }`}
+            >
+              {part}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
 export function App() {
   const easternInitial = useMemo(() => getEasternNow(), []);
   const activeAnchorDate = easternInitial.dateStr || ANCHOR_DATE;
@@ -178,6 +214,8 @@ export function App() {
     venueName: string;
   } | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showToolsMenu, setShowToolsMenu] = useState<boolean>(false);
+  const [isTagsExpanded, setIsTagsExpanded] = useState<boolean>(false);
 
   // Tick real-time America/New_York clock every 30 seconds
   useEffect(() => {
@@ -619,10 +657,10 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
+    <div className="min-h-screen bg-slate-950 text-slate-100 pb-28 sm:pb-20">
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-2xl border border-emerald-500/40 bg-slate-900/95 px-4 py-3 text-xs sm:text-sm font-semibold text-emerald-300 shadow-2xl backdrop-blur-md">
+        <div className="fixed bottom-20 md:bottom-5 right-3 md:right-5 z-50 flex items-center gap-2.5 rounded-2xl border border-emerald-500/40 bg-slate-900/95 px-4 py-3 text-xs sm:text-sm font-semibold text-emerald-300 shadow-2xl backdrop-blur-md">
           <Sparkles className="h-4 w-4 text-emerald-400 shrink-0" />
           <span>{toastMessage}</span>
         </div>
@@ -655,8 +693,8 @@ export function App() {
               </div>
             </div>
 
-            {/* Right Controls: Drop Flyer + Directory + Rules + Install PWA + Crew Unlock */}
-            <div className="flex flex-wrap items-center gap-2">
+            {/* Right Controls: Drop Flyer + Directory + Tools Overflow Dropdown */}
+            <div className="flex items-center gap-2 relative">
               <button
                 onClick={() => {
                   if (!crewUnlocked) {
@@ -665,89 +703,151 @@ export function App() {
                     setIsReviewerOpen(true);
                   }
                 }}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-extrabold text-slate-950 shadow-lg shadow-amber-500/20 transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 px-3.5 py-2 text-xs font-black text-slate-950 shadow-md shadow-amber-500/20 active:scale-95 transition cursor-pointer"
               >
-                <PlusCircle className="h-4 w-4" />
-                <span>Drop Flyer / AI Review</span>
+                <PlusCircle className="h-4 w-4 shrink-0" />
+                <span>Drop Flyer</span>
               </button>
 
               <button
                 onClick={() => setShowVenuesDirectory(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 transition cursor-pointer"
-                title="Browse all 57 verified Corridor Bars, Restaurants & Breweries"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 hover:border-slate-700 px-3 py-2 text-xs font-bold text-slate-200 active:scale-95 transition cursor-pointer"
+                title={`Browse all ${venues.length} verified Corridor Bars, Restaurants & Breweries`}
               >
-                <Building2 className="h-3.5 w-3.5 text-amber-400" />
+                <Building2 className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                 <span>All {venues.length} Spots</span>
               </button>
 
-              <button
-                onClick={() => setIsRulesModalOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-200 transition"
-                title="View Weekly Recurring Rules & Materializer"
-              >
-                <Repeat className="h-3.5 w-3.5 text-sky-400" />
-                <span className="hidden sm:inline">Recurring ({rules.length})</span>
-              </button>
+              {/* Tools Overflow Menu Button */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowToolsMenu((prev) => !prev)}
+                  className={`inline-flex items-center justify-center rounded-xl border p-2 text-xs font-semibold transition cursor-pointer active:scale-95 ${
+                    showToolsMenu || crewUnlocked
+                      ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+                      : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="More Tools, Rules & Settings"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </button>
 
-              <button
-                onClick={() => setShowPwaGuide(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900 hover:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-300 transition"
-                title="Add Wildwood Pulse to Phone Home Screen"
-              >
-                <Smartphone className="h-3.5 w-3.5 text-amber-400" />
-                <span className="hidden md:inline">Add to Phone</span>
-              </button>
+                {showToolsMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowToolsMenu(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 z-50 w-60 rounded-2xl border border-slate-800 bg-slate-900/95 p-1.5 shadow-2xl backdrop-blur-xl space-y-1">
+                      <button
+                        onClick={() => {
+                          setIsRulesModalOpen(true);
+                          setShowToolsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+                      >
+                        <Repeat className="h-3.5 w-3.5 text-sky-400 shrink-0" />
+                        <div>
+                          <div className="font-bold">Weekly Rules ({rules.length})</div>
+                          <div className="text-[10px] text-slate-400">View recurring templates</div>
+                        </div>
+                      </button>
 
-              <button
-                onClick={() => {
-                  if (crewUnlocked) {
-                    setCrewUnlockedState(false);
-                    setCrewUnlocked(false);
-                    showToast('Crew Mode Locked.');
-                  } else {
-                    setShowPinPrompt(true);
-                  }
-                }}
-                className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
-                  crewUnlocked
-                    ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
-                    : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
-                }`}
-                title="Trusted Friends & Family Contributor Mode (PIN: 1922)"
-              >
-                {crewUnlocked ? (
-                  <>
-                    <Unlock className="h-3.5 w-3.5" />
-                    <span className="hidden lg:inline">Crew Unlocked</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="h-3.5 w-3.5" />
-                    <span className="hidden lg:inline">Crew PIN</span>
+                      <button
+                        onClick={() => {
+                          setShowPwaGuide(true);
+                          setShowToolsMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+                      >
+                        <Smartphone className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                        <div>
+                          <div className="font-bold">Add to Phone</div>
+                          <div className="text-[10px] text-slate-400">Install home screen PWA</div>
+                        </div>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setShowToolsMenu(false);
+                          if (crewUnlocked) {
+                            setCrewUnlockedState(false);
+                            setCrewUnlocked(false);
+                            showToast('Crew Mode Locked.');
+                          } else {
+                            setShowPinPrompt(true);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-slate-200 hover:bg-slate-800 hover:text-white transition cursor-pointer"
+                      >
+                        {crewUnlocked ? (
+                          <>
+                            <Unlock className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                            <div>
+                              <div className="font-bold text-emerald-300">Crew Mode (Unlocked)</div>
+                              <div className="text-[10px] text-slate-400">Tap to lock contributor access</div>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <div>
+                              <div className="font-bold">Crew PIN Mode</div>
+                              <div className="text-[10px] text-slate-400">Enter crew passcode (1922)</div>
+                            </div>
+                          </>
+                        )}
+                      </button>
+
+                      <div className="border-t border-slate-800/80 my-1" />
+
+                      <button
+                        onClick={() => {
+                          setShowToolsMenu(false);
+                          const reset = resetToSeedData();
+                          setVenues(reset.venues);
+                          setRules(reset.rules);
+                          setOccurrences(reset.occurrences);
+                          showToast(`Reset to verified ${venues.length}-venue corridor roster.`);
+                        }}
+                        className="w-full flex items-center gap-2.5 rounded-xl px-3 py-2 text-left text-xs font-semibold text-rose-300 hover:bg-rose-500/10 transition cursor-pointer"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                        <div>
+                          <div className="font-bold">Reset Local Cache</div>
+                          <div className="text-[10px] text-slate-400">Clear cached browser state</div>
+                        </div>
+                      </button>
+                    </div>
                   </>
                 )}
-              </button>
-
-              <button
-                onClick={() => {
-                  const reset = resetToSeedData();
-                  setVenues(reset.venues);
-                  setRules(reset.rules);
-                  setOccurrences(reset.occurrences);
-                  showToast('Reset to verified 57-venue corridor roster.');
-                }}
-                className="rounded-xl border border-slate-800 bg-slate-900 p-2 text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                title="Reset Local Cache"
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-              </button>
+              </div>
             </div>
           </div>
 
           {/* Horizontal Day Scrubber */}
           <div className="mt-3 flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+            {selectedDate !== liveEasternDate && (
+              <button
+                onClick={() => {
+                  setSelectedDate(liveEasternDate);
+                  setTimeMode('all_day');
+                }}
+                className="flex items-center gap-1.5 shrink-0 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-2 text-xs font-black text-slate-950 shadow-md shadow-emerald-500/20 hover:brightness-110 active:scale-95 transition cursor-pointer"
+                title="Return to Today"
+              >
+                <Zap className="h-3.5 w-3.5 fill-current" />
+                <span>Today</span>
+              </button>
+            )}
+
             {daysList.map((d) => {
               const isSelected = d.dateStr === selectedDate;
+              const isToday = d.dateStr === liveEasternDate;
+              const isWeekend =
+                d.dayShort.startsWith('Fri') ||
+                d.dayShort.startsWith('Sat') ||
+                d.dayShort.startsWith('Sun');
               const countForDay = occurrences.filter(
                 (o) => !o.is_cancelled && o.occurrence_date === d.dateStr
               ).length;
@@ -760,26 +860,37 @@ export function App() {
                       setTimeMode('all_day');
                     }
                   }}
-                  className={`flex flex-col items-start shrink-0 rounded-xl border px-3.5 py-2 text-left transition cursor-pointer ${
+                  className={`relative flex flex-col items-start shrink-0 rounded-xl border px-3.5 py-2 text-left transition cursor-pointer active:scale-95 ${
                     isSelected
-                      ? 'border-amber-400 bg-amber-500/20 text-white shadow-md shadow-amber-500/10'
+                      ? 'border-amber-400 bg-gradient-to-b from-amber-500/25 to-amber-500/10 text-white shadow-lg shadow-amber-500/15 ring-1 ring-amber-400/50'
+                      : isToday
+                      ? 'border-emerald-500/40 bg-emerald-500/10 text-slate-200 hover:border-emerald-500/60'
                       : 'border-slate-800/90 bg-slate-900/70 text-slate-400 hover:border-slate-700 hover:text-slate-200'
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
                     <span
                       className={`text-xs font-extrabold ${
-                        isSelected ? 'text-amber-300' : 'text-slate-200'
+                        isSelected
+                          ? 'text-amber-300'
+                          : isToday
+                          ? 'text-emerald-300'
+                          : isWeekend
+                          ? 'text-sky-300'
+                          : 'text-slate-200'
                       }`}
                     >
                       {d.dayShort}
                     </span>
-                    <span className="rounded-full bg-slate-800 px-1.5 py-0.2 text-[10px] font-mono text-slate-300">
+                    <span className="rounded-full bg-slate-800/90 px-1.5 py-0.2 text-[10px] font-mono text-slate-300">
                       {countForDay}
                     </span>
                   </div>
                   <div className="flex items-center gap-1 text-[11px] text-slate-400">
                     <span>{d.monthDay}</span>
+                    {isToday && (
+                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                    )}
                     {d.specialLabel && (
                       <span className="text-amber-400 font-semibold">
                         • {d.specialLabel}
@@ -947,58 +1058,107 @@ export function App() {
             <div className="relative flex-1 sm:w-56">
               <Search className="pointer-events-none absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-500" />
               <input
+                id="search-input"
                 type="text"
                 placeholder="Search bands, crushes, wings..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full rounded-xl border border-slate-800 bg-slate-900 pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-2 text-slate-400 hover:text-white"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Standardized Filter Tag Scrubber */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 shrink-0 mr-1">
-            Quick Tags:
-          </span>
-          {TAG_METADATA.map((tag) => {
-            const active = selectedTags.includes(tag.id);
-            return (
+        <div className="flex flex-col gap-1.5 rounded-2xl border border-slate-800/80 bg-slate-900/60 p-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+              <span>Quick Filters</span>
+              {selectedTags.length > 0 && (
+                <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2 py-0.2 text-[10px] font-mono font-bold text-amber-300">
+                  {selectedTags.length} active
+                </span>
+              )}
+            </span>
+
+            <div className="flex items-center gap-2">
+              {selectedTags.length > 0 && (
+                <button
+                  onClick={() => setSelectedTags([])}
+                  className="inline-flex items-center gap-1 rounded-full bg-rose-500/15 border border-rose-500/30 px-2.5 py-0.5 text-[11px] font-semibold text-rose-300 hover:bg-rose-500/25 transition cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                  <span>Clear Filters</span>
+                </button>
+              )}
+
               <button
-                key={tag.id}
-                onClick={() => handleToggleTag(tag.id)}
-                className={`inline-flex items-center gap-1 shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer ${
-                  active
-                    ? 'bg-amber-500/25 border border-amber-400 text-amber-200 shadow-sm'
-                    : 'bg-slate-900/90 border border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                }`}
+                onClick={() => setIsTagsExpanded((prev) => !prev)}
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-sky-400 hover:text-sky-300 transition cursor-pointer"
               >
-                <span>{tag.emoji}</span>
-                <span>{tag.label}</span>
+                <span>{isTagsExpanded ? 'Show Fewer' : `All Tags (${TAG_METADATA.length})`}</span>
+                {isTagsExpanded ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
               </button>
-            );
-          })}
-          {selectedTags.length > 0 && (
-            <button
-              onClick={() => setSelectedTags([])}
-              className="shrink-0 rounded-full bg-rose-500/15 border border-rose-500/30 px-2.5 py-1 text-[11px] font-semibold text-rose-300"
-            >
-              Clear ({selectedTags.length})
-            </button>
-          )}
+            </div>
+          </div>
+
+          <div
+            className={`flex items-center gap-1.5 ${
+              isTagsExpanded
+                ? 'flex-wrap pt-1'
+                : 'overflow-x-auto no-scrollbar py-0.5'
+            }`}
+          >
+            {(isTagsExpanded
+              ? TAG_METADATA
+              : TAG_METADATA.slice(0, 8)
+            ).map((tag) => {
+              const active = selectedTags.includes(tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  onClick={() => handleToggleTag(tag.id)}
+                  className={`inline-flex items-center gap-1 shrink-0 rounded-full px-3 py-1 text-xs font-semibold transition cursor-pointer active:scale-95 ${
+                    active
+                      ? 'bg-amber-500/25 border border-amber-400 text-amber-200 shadow-sm ring-1 ring-amber-400/40'
+                      : 'bg-slate-950/80 border border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                  }`}
+                >
+                  <span>{tag.emoji}</span>
+                  <span>{tag.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Timeline Cards Grid */}
         {filteredOccurrences.length === 0 ? (
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/50 p-10 text-center space-y-3">
-            <p className="text-base font-bold text-white">
-              No scheduled events posted yet for this filter window
-            </p>
-            <p className="text-xs text-slate-400 max-w-md mx-auto">
-              You can browse all <strong>{venues.length} verified corridor venues</strong>, drop a flyer screenshot via AI Review, or reset active filters below.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
+          <div className="rounded-3xl border border-slate-800/80 bg-gradient-to-b from-slate-900/80 to-slate-950/80 p-8 sm:p-12 text-center space-y-4 shadow-xl">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shadow-lg shadow-amber-500/10 text-2xl">
+              🏖️
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-black text-white">
+                No Events Match Your Filters
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
+                No scheduled specials or live music matched your current search, town, or tag filters for this date.
+              </p>
+            </div>
+            <div className="flex flex-wrap justify-center gap-2.5 pt-2">
               <button
                 onClick={() => {
                   setTimeMode('all_day');
@@ -1008,15 +1168,17 @@ export function App() {
                   setSelectedVenueId('all');
                   setSearchQuery('');
                 }}
-                className="rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-slate-950"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-bold text-slate-950 shadow-md transition cursor-pointer active:scale-95"
               >
-                Show All Areas &amp; Full Day Lineup
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Reset All Filters</span>
               </button>
               <button
                 onClick={() => setShowVenuesDirectory(true)}
-                className="rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-slate-200 transition cursor-pointer active:scale-95"
               >
-                Browse All {venues.length} Venues
+                <Building2 className="h-3.5 w-3.5 text-amber-400" />
+                <span>Browse All {venues.length} Spots</span>
               </button>
             </div>
           </div>
@@ -1031,12 +1193,14 @@ export function App() {
               return (
                 <article
                   key={occ.id}
-                  className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition ${
+                  className={`group relative flex flex-col justify-between rounded-2xl border p-4 sm:p-5 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl ${
                     isEventToday && liveStatus.state === 'active'
-                      ? 'border-emerald-500/40 bg-gradient-to-b from-slate-900 to-slate-900/95 shadow-lg shadow-emerald-950/20'
+                      ? 'border-emerald-500/60 bg-gradient-to-b from-slate-900 to-slate-900/95 shadow-lg shadow-emerald-950/30 ring-1 ring-emerald-500/30'
                       : isLiveMusic
-                      ? 'border-indigo-500/30 bg-slate-900/90 hover:border-indigo-500/50'
-                      : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'
+                      ? 'border-indigo-500/35 bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950/15 hover:border-indigo-400/50 shadow-sm'
+                      : occ.category === 'trivia_event'
+                      ? 'border-purple-500/35 bg-gradient-to-b from-slate-900 via-slate-900 to-purple-950/15 hover:border-purple-400/50 shadow-sm'
+                      : 'border-slate-800/90 bg-gradient-to-b from-slate-900 to-slate-900/70 hover:border-amber-500/30 shadow-sm'
                   }`}
                 >
                   <div>
@@ -1099,11 +1263,13 @@ export function App() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider ${
+                            className={`rounded-md px-2 py-0.5 text-[10px] font-black uppercase tracking-wider ${
                               occ.category === 'live_music'
                                 ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                                 : occ.category === 'happy_hour'
                                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                : occ.category === 'trivia_event'
+                                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                                 : 'bg-sky-500/20 text-sky-300 border border-sky-500/30'
                             }`}
                           >
@@ -1129,24 +1295,25 @@ export function App() {
                           )}
                         </div>
 
-                        <h3 className="mt-1.5 text-base sm:text-lg font-extrabold text-white leading-snug">
+                        <h3 className="mt-1.5 text-base sm:text-lg font-black text-white leading-snug">
                           {occ.title}
                         </h3>
 
                         {occ.performer_name && (
-                          <p className="text-xs font-semibold text-indigo-300 mt-0.5">
-                            🎤 Performer: {occ.performer_name}{' '}
+                          <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/25 px-2.5 py-1 text-xs font-bold text-indigo-200">
+                            <Music className="h-3.5 w-3.5 text-indigo-400 shrink-0" />
+                            <span>Performer: {occ.performer_name}</span>
                             {occ.cover_charge && (
                               <span className="text-slate-400 font-normal">
                                 • {occ.cover_charge}
                               </span>
                             )}
-                          </p>
+                          </div>
                         )}
                       </div>
 
                       <div className="shrink-0 text-right">
-                        <div className="rounded-xl border border-slate-800 bg-slate-950 px-2.5 py-1 font-mono text-xs font-bold text-slate-200">
+                        <div className="rounded-xl border border-slate-700/80 bg-slate-950/90 px-3 py-1 font-mono text-xs font-black text-slate-100 shadow-inner tracking-tight">
                           {format12Hour(occ.start_time_local)} –{' '}
                           {format12Hour(occ.end_time_local, occ.end_time_label)}
                         </div>
@@ -1158,10 +1325,20 @@ export function App() {
                         {occ.deals_summary.map((deal, idx) => (
                           <li
                             key={idx}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-950/75 border border-slate-800/90 px-2.5 py-1 text-xs font-medium text-slate-200"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-slate-950/80 border border-slate-800/90 px-2.5 py-1 text-xs font-medium text-slate-200 shadow-sm"
                           >
-                            <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
-                            <span className="leading-snug">{deal}</span>
+                            <span
+                              className={`h-1.5 w-1.5 rounded-full shrink-0 ${
+                                isLiveMusic
+                                  ? 'bg-indigo-400'
+                                  : occ.category === 'trivia_event'
+                                  ? 'bg-purple-400'
+                                  : 'bg-amber-400'
+                              }`}
+                            />
+                            <span className="leading-snug">
+                              {renderHighlightedDeal(deal, occ.category)}
+                            </span>
                           </li>
                         ))}
                       </ul>
@@ -1644,6 +1821,83 @@ export function App() {
         venueName={lightboxFlyer?.venueName || ''}
         onClose={() => setLightboxFlyer(null)}
       />
+
+      {/* Mobile Floating Quick Navigation Dock (< md screens) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="fixed bottom-3 inset-x-3 z-40 md:hidden flex items-center justify-around rounded-2xl border border-slate-800/90 bg-slate-950/90 px-3 py-2 shadow-2xl backdrop-blur-xl"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedDate(liveEasternDate);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[11px] font-semibold transition-colors ${
+            selectedDate === liveEasternDate
+              ? 'text-amber-400'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Zap className="h-5 w-5" />
+          <span>Today</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            const input = document.getElementById('search-input');
+            if (input) {
+              input.focus();
+              input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+          className="flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[11px] font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+        >
+          <Search className="h-5 w-5" />
+          <span>Search</span>
+        </button>
+
+        {/* Center Prominent Action Button: Drop Flyer */}
+        <button
+          type="button"
+          onClick={() => setIsReviewerOpen(true)}
+          className="flex flex-col items-center -mt-5"
+          aria-label="Drop Flyer & Vision AI Review"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-slate-950 shadow-lg shadow-amber-500/30 active:scale-95 transition-transform">
+            <PlusCircle className="h-6 w-6 stroke-[2.5]" />
+          </div>
+          <span className="text-[10px] font-bold text-amber-300 mt-1">Flyer AI</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowVenuesDirectory(true)}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[11px] font-semibold transition-colors ${
+            showVenuesDirectory
+              ? 'text-amber-400'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Building2 className="h-5 w-5" />
+          <span>{venues.length} Spots</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setShowToolsMenu((prev) => !prev)}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-xl text-[11px] font-semibold transition-colors ${
+            showToolsMenu
+              ? 'text-amber-400'
+              : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <SlidersHorizontal className="h-5 w-5" />
+          <span>Tools</span>
+        </button>
+      </nav>
     </div>
   );
 }
